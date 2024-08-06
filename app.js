@@ -26,24 +26,17 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 app.use('/auth', authRoutes);
 
 app.use('/api', gameRoutes);
 
+app.use('/user', userRoutes);
+
 app.get('/', (req, res) => {
   res.send('<a href="/auth/discord">Login with Discord</a>');
 });
-
-app.get('/dashboard', authMiddleware.ensureAuthenticated, (req, res) => {
-  res.send(`Hello, ${req.user.username}! Welcome to your dashboard.`);
-});
-
-// Bypass middleware for API testing purposes
-app.get('/api/dashboard', (req, res) => {
-  res.send('Welcome to the API dashboard!');
-});
-
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
