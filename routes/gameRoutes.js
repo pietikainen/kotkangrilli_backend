@@ -10,4 +10,10 @@ router.post('/games', authMiddleware.ensureAuthenticated, gameController.addGame
 // Bypass middleware for API testing purposes
 // router.post('/games', gameController.addGame);
 
+// GET route to get all games
+router.get('/games', gameController.getAllGames);
+
+
+
+
 module.exports = router;
