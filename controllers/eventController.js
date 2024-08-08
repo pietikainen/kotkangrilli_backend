@@ -40,13 +40,6 @@ exports.addEvent = async (req, res) => {
             eventOrganizer
         });
 
-        // Add games to the event
-        await newEvent.$relatedQuery('games').relate(eventGames);
-
-        res.status(201).json({
-            success: true,
-            data: newEvent
-        });
     } catch (error) {
         console.log("error adding event", error.message);
         res.status(500).json({
@@ -57,80 +50,34 @@ exports.addEvent = async (req, res) => {
     }
 }
 
-exports.addLanMaster = async (req, res) => {
-    console.log("received POST request to /api/events/:id/lanmaster");
-    const { lanMasterId } = req.body;
-    const { id } = req.params;
+exports.updateEvent = async (req, res) => {
+    console.log("received PUT request to /api/events/:eventId");
+    const eventId = req.params.eventId;
+    const { eventTitle, eventDescription, eventDate, eventLocation, eventLanMaster, eventPaintCompoWinner, eventOrganizer } = req.body;
 
     try {
-        const event = await Event.query().findById(id);
-        if (!event) {
-            return res.status(404).json({
-                success: false,
-                message: 'Event not found'
-            });
-        }
-
-        const user = await User.query().findById(lanMasterId);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-
-        await event.$query().patch({ eventLanMaster: lanMasterId });
+        const updatedEvent = await Event.query().updateAndFetchById(eventId, {
+            eventTitle,
+            eventDescription,
+            eventDate,
+            eventLocation,
+            eventLanMaster,
+            eventPaintCompoWinner,
+            eventOrganizer
+        });
 
         res.status(200).json({
             success: true,
-            message: 'Lan master added to event'
+            data: updatedEvent
         });
-    }
-    catch (error) {
-        console.log("error adding lan master to event", error.message);
+    } catch (error) {
+        console.log("error updating event", error.message);
         res.status(500).json({
             success: false,
-            message: 'Error adding lan master to event',
+            message: 'Error updating event',
             error: error.message
         });
     }
 }
 
-exports.addPaintCompoWinner = async (req, res) => {
-    console.log("received POST request to /api/events/:id/paintcompowinner");
-    const { paintCompoWinnerId } = req.body;
-    const { id } = req.params;
 
-    try {
-        const event = await Event.query().findById(id);
-        if (!event) {
-            return res.status(404).json({
-                success: false,
-                message: 'Event not found'
-            });
-        }
-
-        const user = await User.query().findById(paintCompoWinnerId);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-
-        await event.$query().patch({ eventPaintCompoWinner: paintCompoWinnerId });
-
-        res.status(200).json({
-            success: true,
-            message: 'Paint compo winner added to event'
-        });
-    }
-    catch (error) {
-        console.log("error adding paint compo winner to event", error.message);
-        res.status(500).json({
-            success: false,
-            message: 'Error adding paint compo winner to event',
-            error: error.message
-        });
-    }
-}
