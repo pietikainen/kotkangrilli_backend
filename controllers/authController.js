@@ -10,14 +10,14 @@ passport.use(new DiscordStrategy({
   scope: ['identify', 'email']
 }, async (accessToken, refreshToken, profile, done) => {
   try {
-    let user = await User.query().findOne({ discordId: profile.id });
-    if (!user) {
-      user = await User.query().insert({
-        discordId: profile.id,
-        username: profile.username,
-        email: profile.email
-      });
-    }
+
+    const user = await User.query().insert({
+      discordId: profile.id,
+      username: profile.username,
+      email: profile.email,
+      profilePicture: profile.avatar
+    }).onConflict('discordId').merge();
+
     return done(null, user);
   } catch (err) {
     return done(err);
