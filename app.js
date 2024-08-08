@@ -36,14 +36,11 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-
+const apiRoutes = require('./routes/apiRoutes');
 
 app.use('/auth', authRoutes);
+app.use('/api', apiRoutes);
 
-app.use('/api', gameRoutes);
-
-app.use('/user', userRoutes);
 
 app.get('/', (req, res) => {
   res.send('<a href="/auth/discord">Login with Discord</a>');
