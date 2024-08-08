@@ -4,14 +4,18 @@ const router = express.Router();
 const gameController = require('../controllers/gameController');
 const authMiddleware = require('../middleware/authMiddleware');
 
+
+router.use(authMiddleware.ensureAuthenticated);
+
+
 // POST route to add a new game
-router.post('/games', authMiddleware.ensureAuthenticated, gameController.addGame);
+router.post('', gameController.addGame);
 
 // Bypass middleware for API testing purposes
 // router.post('/games', gameController.addGame);
 
 // GET route to get all games
-router.get('/games', gameController.getAllGames);
+router.get('', gameController.getAllGames);
 
 
 
