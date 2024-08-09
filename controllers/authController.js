@@ -12,11 +12,12 @@ passport.use(new DiscordStrategy({
   try {
 
     const user = await User.query().insert({
-      discordId: profile.id,
+      snowflake: profile.id,
       username: profile.username,
       email: profile.email,
-      profilePicture: profile.avatar
-    }).onConflict('discordId').merge();
+      avatar: profile.avatar,
+      userlevel: 1
+    }).onConflict('snowflake').merge(['username', 'email', 'avatar', 'updated_at']);
 
     return done(null, user);
   } catch (err) {
