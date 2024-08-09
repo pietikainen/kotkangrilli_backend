@@ -5,7 +5,7 @@ const gameController = require('../controllers/gameController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 
-router.use(authMiddleware.ensureAuthenticated);
+// router.use(authMiddleware.ensureAuthenticated);
 
 
 // POST route to add a new game
@@ -17,6 +17,8 @@ router.post('', gameController.addGame);
 // GET route to get all games
 router.get('', gameController.getAllGames);
 
+// not working - but soon will be
+router.get('/fetch-igdb/:param', gameController.fetchGameFromExternalApi);
 
 
 
