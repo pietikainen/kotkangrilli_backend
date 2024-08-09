@@ -5,7 +5,7 @@
 exports.up = function(knex) {
     return knex.schema.createTable('users', (table) => {
       table.increments('id').primary();
-      table.integer('snowflake').unique().notNullable();
+      table.bigInteger('snowflake').unique().notNullable();
       table.string('username').unique().notNullable();
       table.string('nickname');
       table.string('avatar');
