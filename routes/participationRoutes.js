@@ -9,7 +9,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 router.use(authMiddleware.ensureAuthenticated);
 
 router.post('/:eventId', participationController.addParticipationToEvent);
-router.delete('/:id', participationController.deleteParticipationToEvent);
+router.delete('/:id', participationController.removeParticipationFromEvent);
 router.get('/:eventId', participationController.getParticipationToEvent);
 router.put('/:id', participationController.updateParticipationToEvent);
 
