@@ -5,9 +5,6 @@ const express = require('express');
 
 const router = express.Router();
 const userController = require('../controllers/userController');
-const authMiddleware = require('../middleware/authMiddleware');
-
-router.use(authMiddleware.ensureAuthenticated);
 
 router.get('/me', userController.getUser);
 router.get('', userController.getAllUsers);

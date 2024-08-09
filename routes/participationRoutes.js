@@ -4,9 +4,6 @@ const express = require('express');
 const router = express.Router();
 
 const participationController = require('../controllers/participationController');
-const authMiddleware = require('../middleware/authMiddleware');
-
-router.use(authMiddleware.ensureAuthenticated);
 
 router.post('/:eventId', participationController.addParticipationToEvent);
 router.delete('/:id', participationController.removeParticipationFromEvent);

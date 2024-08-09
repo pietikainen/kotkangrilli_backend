@@ -2,10 +2,6 @@
 const express = require('express');
 const router = express.Router();
 const eventController = require('../controllers/eventController');
-const authMiddleware = require('../middleware/authMiddleware');
-
-router.use(authMiddleware.ensureAuthenticated);
-
 
 // POST route to add a new event
 router.post('', eventController.addEvent);
