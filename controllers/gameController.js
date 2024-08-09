@@ -21,24 +21,24 @@ exports.getAllGames = async (req, res) => {
 
 exports.addGame = async (req, res) => {
     console.log("received POST request to /api/games");
-  const { gameExternalApiId, gameName, gamePrice, gameStore, gameDescription, gameLink, gamePlayers, gameIsLan } = req.body;
+  const { externalApiId, title, price, store, description, link, players, isLan } = req.body;
 
-  const gameSubmittedBy = req.user.id; // Assuming the user ID is stored in req.user.id after authentication
-
+  const submittedBy = req.user.id; // Assuming the user ID is stored in req.user.id after authentication
+  console.log("SubmittedBy: " + submittedBy);
 // Presetting user ID for testing purposes
 // const gameSubmittedBy = 1; 
 
   try {
     const newGame = await Game.query().insert({
-      gameExternalApiId,
-      gameName,
-      gamePrice,
-      gameStore,
-      gameDescription,
-      gameLink,
-      gamePlayers,
-      gameIsLan,
-      gameSubmittedBy
+      externalApiId,
+      title,
+      price,
+      store,
+      description,
+      link,
+      players,
+      isLan,
+      submittedBy
     });
 
     res.status(201).json({

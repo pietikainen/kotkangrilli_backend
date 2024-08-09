@@ -10,14 +10,30 @@ class Game extends Model {
     const User = require('./User');
 
     return {
-      submittedBy: {
+      submittedByUser: {
         relation: Model.BelongsToOneRelation,
         modelClass: User,
         join: {
-          from: 'games.gameSubmittedBy',
+          from: 'games.submittedBy',
           to: 'users.id'
         }
       }
+    };
+  }
+
+  $parseDatabaseJson(json) {
+    json = super.$parseDatabaseJson(json);
+    return {
+      ...json,
+      submittedBy: json.submittedBy
+    };
+  }
+
+  $formatDatabaseJson(json) {
+    json = super.$formatDatabaseJson(json);
+    return {
+      ...json,
+      submittedBy: json.submittedBy
     };
   }
 }

@@ -25,7 +25,7 @@ class User extends Model {
         modelClass: Game,
         join: {
           from: 'users.id',
-          to: 'games.submitted_by'
+          to: 'games.submittedBy'
         }
       },
       votes: {

@@ -20,7 +20,7 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getAllUserProfiles = async (req, res) => {
   try {
-    const users = await User.query().select('id', 'username', 'discordId', 'profilePicture');
+    const users = await User.query().select('id', 'username', 'snowflake', 'avatar');
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: 'Error retrieving user profiles' });
