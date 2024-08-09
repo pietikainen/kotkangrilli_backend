@@ -3,7 +3,7 @@ module.exports = {
       if (req.isAuthenticated()) {
         return next();
       }
-      res.redirect('/');
+      res.status(401).json({ message: 'User is not authenticated' });
     }
   };
   

@@ -7,12 +7,8 @@ const { Model } = require('objection');
 const Knex = require('knex');
 const knexConfig = require('./knexfile');
 const passport = require('./controllers/authController');
-const authMiddleware = require('./middleware/authMiddleware');
 const cors = require('cors');
 
-
-
-const gameRoutes = require('./routes/gameRoutes');
 
 dotenv.config();
 
