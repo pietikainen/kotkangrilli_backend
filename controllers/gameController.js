@@ -56,7 +56,7 @@ exports.addGame = async (req, res) => {
   }
 };
 
-exports.fetchGameFromExternalApi = async (req, res) => {
+exports.getGameFromIgdb = async (req, res) => {
   console.log("received GET request to /api/games/fetch-igdb/:param");
 
   const { param } = req.params;
@@ -64,7 +64,7 @@ exports.fetchGameFromExternalApi = async (req, res) => {
   const accessToken = process.env.IGDB_ACCESS_TOKEN;
 
   try {
-    console.log("param" + param);
+    console.log("param: " + param);
     console.log("clientId" + clientId);
     console.log("accessToken" + accessToken);
     
@@ -76,7 +76,7 @@ exports.fetchGameFromExternalApi = async (req, res) => {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'text/plain'
       },
-      data: `fields name, cover, price, store, link; search "${param}";`
+      data: `fields name, cover; limit 5; search "${param}";`
     });   
 
     res.status(200).json({
@@ -85,15 +85,54 @@ exports.fetchGameFromExternalApi = async (req, res) => {
     });
   } catch (error) {
     console.log("error fetching game from external API", error.message);
+    console.log("error response data: ", error.response ? error.response.data : 'No response data');
+
     res.status(500).json({
       success: false,
       message: 'Error fetching game from external API',
       error: error.message
     });
-
-
-
   }
+}
 
+exports.getGameDetailsFromIgdb = async (req, res) => {
+  console.log("received GET request to /api/games/details/:id");
+
+  const { id } = req.params;
+  const clientId = process.env.IGDB_CLIENT_ID;
+  const accessToken = process.env.IGDB_ACCESS_TOKEN;
+
+  try {
+    console.log("id: " + id);
+    console.log("clientId" + clientId);
+    console.log("accessToken" + accessToken);
+    
+    const response = await axios({
+      url: `https://api.igdb.com/v4/games`,
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'text/plain'
+      },
+      data: `fields *; where id = ${id};`
+    });   
+
+    console.log("response.data: " + response.data);
+
+    res.status(200).json({
+      success: true,
+      data: response.data
+    });
+  } catch (error) {
+    console.log("error fetching game details from external API", error.message);
+    console.log("error response data: ", error.response ? error.response.data : 'No response data');
+
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching game details from external API',
+      error: error.message
+    });
+  }
 }
 
