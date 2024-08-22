@@ -31,6 +31,11 @@ app.use(cors(corsOptions));
 app.use(passport.initialize());
 app.use(passport.session());
 
+const proxyRoutes = require('./routes/proxyRoutes');
+app.use(express.text({type: '*/*'}));
+app.use(express.json());
+app.use('/proxy', proxyRoutes);
+
 const authRoutes = require('./routes/authRoutes');
 const apiRoutes = require('./routes/apiRoutes');
 
