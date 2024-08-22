@@ -12,9 +12,8 @@ router.post('', gameController.addGame);
 // GET route to get all games
 router.get('', gameController.getAllGames);
 
-// not working - but soon will be
-router.get('/fetch-igdb/:param', gameController.fetchGameFromExternalApi);
-
+router.get('/search/:param', gameController.getGameFromIgdb);
+// router.get('/details/:id', gameController.getGameDetailsFromIgdb);
 
 
 module.exports = router;
