@@ -13,8 +13,8 @@ router.post('/', async (req, res) => {
     console.log('Data:', data);
     console.log('Data.query:', data.query);
 
-    const clientId = process.env.IDGB_CLIENT_ID;
-    const accessToken = process.env.IDGB_ACCESS_TOKEN;
+    const clientId = process.env.IGDB_CLIENT_ID;
+    const accessToken = process.env.IGDB_ACCESS_TOKEN;
 
     try {
         const response = await axios({
