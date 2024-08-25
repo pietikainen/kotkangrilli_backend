@@ -136,3 +136,46 @@ exports.getGameDetailsFromIgdb = async (req, res) => {
   }
 }
 
+exports.getGameCoverFromIgdb = async (req, res) => {
+  console.log("received GET request to /api/games/cover/:id");
+
+  const { id } = req.params;
+  const clientId = process.env.IGDB_CLIENT_ID;
+  const accessToken = process.env.IGDB_ACCESS_TOKEN;
+
+  try {
+    console.log("id: " + id);
+    console.log("clientId" + clientId);
+    console.log("accessToken" + accessToken);
+    
+    const response = await axios({
+      url: `https://api.igdb.com/v4/covers`,
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'text/plain'
+      },
+      data: `fields *; where game = ${id};`
+    });   
+
+    console.log("response.data: " + response.data);
+
+    const coverUrl = `https://images.igdb.com/igdb/image/upload/t_cover_big/${response.data[0].image_id}.jpg`;
+
+    res.status(200).json({
+      success: true,
+      data: coverUrl
+    });
+  } catch (error) {
+    console.log("error fetching game cover from external API", error.message);
+    console.log("error response data: ", error.response ? error.response.data : 'No response data');
+
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching game cover from external API',
+      error: error.message
+    });
+  }
+}
+
