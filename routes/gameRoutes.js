@@ -13,7 +13,8 @@ router.post('', gameController.addGame);
 router.get('', gameController.getAllGames);
 
 router.get('/search/:param', gameController.getGameFromIgdb);
-// router.get('/details/:id', gameController.getGameDetailsFromIgdb);
+//router.get('/details/:id', gameController.getGameDetailsFromIgdb);
 
+router.get('/cover/:id', gameController.getGameCoverFromIgdb);
 
 module.exports = router;
