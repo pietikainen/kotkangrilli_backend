@@ -1,9 +1,16 @@
 // controllers/gameController.js
 const Game = require('../models/Game');
 const axios = require('axios');
+const Config = require('../models/Config');
+
+async function getIgdbTokenFromConfig() {
+  const token = await Config.query().where('key', 'igdbToken');
+
+  return token[0].value;
+}
 
 exports.getAllGames = async (req, res) => {
-    console.log("received GET request to /api/games");
+  console.log("received GET request to /api/games");
   try {
     const games = await Game.query();
     res.status(200).json({
@@ -21,13 +28,13 @@ exports.getAllGames = async (req, res) => {
 }
 
 exports.addGame = async (req, res) => {
-    console.log("received POST request to /api/games");
+  console.log("received POST request to /api/games");
   const { externalApiId, title, price, store, description, link, players, isLan } = req.body;
 
   const submittedBy = req.user.id; // Assuming the user ID is stored in req.user.id after authentication
   console.log("SubmittedBy: " + submittedBy);
-// Presetting user ID for testing purposes
-// const gameSubmittedBy = 1; 
+  // Presetting user ID for testing purposes
+  // const gameSubmittedBy = 1; 
 
   try {
     const newGame = await Game.query().insert({
@@ -61,13 +68,13 @@ exports.getGameFromIgdb = async (req, res) => {
 
   const { param } = req.params;
   const clientId = process.env.IGDB_CLIENT_ID;
-  const accessToken = process.env.IGDB_ACCESS_TOKEN;
+  const accessToken = await getIgdbTokenFromConfig();
 
   try {
     console.log("param: " + param);
     console.log("clientId" + clientId);
     console.log("accessToken" + accessToken);
-    
+
     const response = await axios({
       url: `https://api.igdb.com/v4/games`,
       method: 'POST',
@@ -77,7 +84,7 @@ exports.getGameFromIgdb = async (req, res) => {
         'Content-Type': 'text/plain'
       },
       data: `fields name, cover; limit 5; search "${param}";`
-    });   
+    });
 
     res.status(200).json({
       success: true,
@@ -100,13 +107,13 @@ exports.getGameDetailsFromIgdb = async (req, res) => {
 
   const { id } = req.params;
   const clientId = process.env.IGDB_CLIENT_ID;
-  const accessToken = process.env.IGDB_ACCESS_TOKEN;
+  const accessToken = await getIgdbTokenFromConfig();
 
   try {
     console.log("id: " + id);
     console.log("clientId" + clientId);
     console.log("accessToken" + accessToken);
-    
+
     const response = await axios({
       url: `https://api.igdb.com/v4/games`,
       method: 'POST',
@@ -116,7 +123,7 @@ exports.getGameDetailsFromIgdb = async (req, res) => {
         'Content-Type': 'text/plain'
       },
       data: `fields *; where id = ${id};`
-    });   
+    });
 
     console.log("response.data: " + response.data);
 
@@ -141,13 +148,13 @@ exports.getGameCoverFromIgdb = async (req, res) => {
 
   const { id } = req.params;
   const clientId = process.env.IGDB_CLIENT_ID;
-  const accessToken = process.env.IGDB_ACCESS_TOKEN;
+  const accessToken = await getIgdbTokenFromConfig();
 
   try {
     console.log("id: " + id);
     console.log("clientId" + clientId);
     console.log("accessToken" + accessToken);
-    
+
     const response = await axios({
       url: `https://api.igdb.com/v4/covers`,
       method: 'POST',
@@ -157,7 +164,7 @@ exports.getGameCoverFromIgdb = async (req, res) => {
         'Content-Type': 'text/plain'
       },
       data: `fields *; where game = ${id};`
-    });   
+    });
 
     console.log("response.data: " + response.data);
 
@@ -176,6 +183,75 @@ exports.getGameCoverFromIgdb = async (req, res) => {
       message: 'Error fetching game cover from external API',
       error: error.message
     });
+  }
+}
+
+exports.getGameStoreUrl = async (req, res) => {
+
+
+  // get store url from external API, if steam then use steam store url, if epic then use epic store url, etc.
+
+  const id = req.params.id;
+  const clientId = process.env.IGDB_CLIENT_ID;
+  const accessToken = await getIgdbTokenFromConfig();
+
+  try {
+    let response = await axios({
+      url: `https://api.igdb.com/v4/websites`,
+      method: 'POST',
+      headers: {
+        'Client-ID': clientId,
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'text/plain'
+      },
+      data: `fields *; where game = ${id};`
+    });
+
+    // find the store url from json data where category = 13 or 17 or 16
+    // 13 = steam, 17 = gog, 16 = epic
+
+    let storeUrl = '';
+
+    for (let i = 0; i < response.data.length; i++) {
+      if (response.data[i].category === 13 || response.data[i].category === 17 || response.data[i].category === 16) {
+        storeUrl = response.data[i].url;
+        break;
+      }
+    }
+
+    // if response from websites is empty, try external_games
+    if (storeUrl === '') {
+      let response = await axios({
+        url: `https://api.igdb.com/v4/external_games`,
+        method: 'POST',
+        headers: {
+          'Client-ID': clientId,
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'text/plain'
+        },
+        data: `fields *; where game = ${id};`
+      });
+
+      // find the store url from json data where category = 1 or 5 or 26
+      // 1 = steam, 5 = gog, 26 = epic
+
+      for (let i = 0; i < response.data.length; i++) {
+        if (response.data[i].category === 1 || response.data[i].category === 5 || response.data[i].category === 26) {
+          storeUrl = response.data[i].url;
+          break;
+        }
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      data: storeUrl
+    });
+
+
+  } catch (error) {
+    console.log("error fetching game store url from external API", error.message);
+    console.log("error response data: ", error.response ? error.response.data : 'No response data');
   }
 }
 
