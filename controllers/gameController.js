@@ -83,7 +83,7 @@ exports.getGameFromIgdb = async (req, res) => {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'text/plain'
       },
-      data: `fields name, cover; limit 5; search "${param}";`
+      data: `fields name, cover; limit 5; search "${param}"; where category = 0;`
     });
 
     res.status(200).json({
@@ -168,15 +168,24 @@ exports.getGameCoverFromIgdb = async (req, res) => {
 
     console.log("response.data: " + response.data);
 
-    const coverUrl = `https://images.igdb.com/igdb/image/upload/t_cover_big/${response.data[0].image_id}.jpg`;
 
+    if (response.data.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: 'No cover found for this game'
+      });
+
+      return;
+    }
+
+    const coverUrl = `https://images.igdb.com/igdb/image/upload/t_cover_big/${response.data[0].image_id}.jpg`;
+    
     res.status(200).json({
       success: true,
       data: coverUrl
     });
   } catch (error) {
-    console.log("error fetching game cover from external API", error.message);
-    console.log("error response data: ", error.response ? error.response.data : 'No response data');
+    console.log("error fetching game cover from external API:", error.message);
 
     res.status(500).json({
       success: false,
