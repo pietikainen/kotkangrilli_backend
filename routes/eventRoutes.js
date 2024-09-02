@@ -11,7 +11,12 @@ router.post('', eventController.addEvent);
 
 // GET route to get all events
 router.get('', eventController.getAllEvents);
+router.get('/:eventId', eventController.getEventById);
+router.post('/add', eventController.addEvent);
 
+router.patch('/add', eventController.addWinners);
 router.put('/:eventId', eventController.updateEvent);
+
+router.delete('/:eventId', eventController.deleteEvent);
 
 module.exports = router;
