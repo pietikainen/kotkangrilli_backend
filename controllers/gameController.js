@@ -29,7 +29,7 @@ exports.getAllGames = async (req, res) => {
 
 exports.addGame = async (req, res) => {
   console.log("received POST request to /api/games");
-  const { externalApiId, title, price, store, description, link, players, isLan } = req.body;
+  const { externalApiId, title, image, price, store, description, link, players, isLan } = req.body;
 
   const submittedBy = req.user.id; // Assuming the user ID is stored in req.user.id after authentication
   console.log("SubmittedBy: " + submittedBy);
@@ -40,6 +40,7 @@ exports.addGame = async (req, res) => {
     const newGame = await Game.query().insert({
       externalApiId,
       title,
+      image,
       price,
       store,
       description,
