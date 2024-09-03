@@ -1,8 +1,6 @@
 // controllers/eventController.js
 
 const Event = require('../models/Event');
-const User = require('../models/User');
-const Game = require('../models/Game');
 
 // REFERENCE
 // table.increments('id').primary();
@@ -39,13 +37,7 @@ exports.getAllEvents = async (req, res) => {
 
 exports.addEvent = async (req, res) => {
     console.log("received POST request to /api/events");
-    const { eventTitle, eventDescription, eventDate, eventLocation } = req.body;
-
-    const eventOrganizer = req.user.id; // Assuming the user ID is stored in req.user.id after authentication
-
-
-    // Give the event a default value of false for votingOpen and active
-    // other fields are required
+    const { title, description, location, startDate, endDate, votingOpen, active, lanMaster, paintCompoWinner, organizer } = req.body;
 
     try {
         const newEvent = await Event.query().insert({
@@ -54,9 +46,17 @@ exports.addEvent = async (req, res) => {
             location,
             startDate,
             endDate,
-            organizer
+            votingOpen,
+            active,
+            lanMaster,
+            paintCompoWinner,
+            organizer: organizer || req.user.id
         });
 
+        res.status(201).json({
+            success: true,
+            data: newEvent
+        });
     } catch (error) {
         console.log("error adding event", error.message);
         res.status(500).json({
