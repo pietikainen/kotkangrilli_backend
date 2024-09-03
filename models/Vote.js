@@ -28,3 +28,5 @@ class Vote extends Model {
         };
     }
 }
+
+module.exports = Vote;

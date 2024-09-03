@@ -29,4 +29,6 @@ class Participation extends Model {
         },
         };
     }
-    }
+}
+
+module.exports = Participation;

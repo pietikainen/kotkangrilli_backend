@@ -8,3 +8,5 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 
 router.use(adminMiddleware.ensureAdmin);
 router.patch('/user/:userId', adminController.updateUserRole);
+
+module.exports = router;

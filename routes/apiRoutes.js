@@ -13,6 +13,8 @@ router.use('/games', require('./gameRoutes'));
 router.use('/events', require('./eventRoutes'));
 router.use('/users', require('./userRoutes'));
 router.use('/participations', require('./participationRoutes'));
+router.use('/locations', require('./locationRoutes'));
+router.use('/admin', require('./adminRoutes'));
 
 
 

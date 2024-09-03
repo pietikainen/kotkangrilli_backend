@@ -14,7 +14,7 @@ router.use((req, res, next) => {
     const expiryDate = data.expiry;
 
     if (now > expiryDate) {
-        gameController.updateIgdbTokenInConfig();
+        configController.updateIgdbTokenInConfig();
     }
     next();
 })
