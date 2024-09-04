@@ -265,3 +265,51 @@ exports.getGameStoreUrl = async (req, res) => {
   }
 }
 
+exports.getGameSubmittedBy = async (gameId) => {
+  
+    const game = await Game.query().findById(gameId);
+    return game.submittedBy;
+
+}
+
+exports.editGameSuggestion = async (req, res) => {
+  const gameId = req.params.id;
+  const { externalApiId, title, image, price, link, store, players, isLan, description } = req.body;
+
+  try {
+    const game = await Game.query().findById(gameId);
+
+    if (!game) {
+      return res.status(404).json({
+        success: false,
+        message: 'Game not found'
+      });
+    }
+
+    game.externalApiId = externalApiId;
+    game.title = title;
+    game.image = image;
+    game.price = price;
+    game.link = link;
+    game.store = store;
+    game.players = players;
+    game.isLan = isLan;
+    game.description = description;
+
+    await game.$query().patch();
+
+    res.status(200).json({
+      success: true,
+      data: game
+    });
+  } catch (error) {
+    console.log("error updating game suggestion", error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating game suggestion',
+      error: error.message
+    });
+  }
+
+
+}

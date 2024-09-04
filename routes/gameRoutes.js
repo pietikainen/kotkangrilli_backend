@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const gameController = require('../controllers/gameController');
 const configController = require('../controllers/configController');
-
+const gameMiddleware = require('../middleware/gameMiddleware');
 
 // Middleware to check IDGB token expiry date - if old, get new.
 
@@ -31,5 +31,8 @@ router.get('/search/:param', gameController.getGameFromIgdb);
 //router.get('/details/:id', gameController.getGameDetailsFromIgdb);
 
 router.get('/cover/:id', gameController.getGameCoverFromIgdb);
+
+router.put('/:id', gameController.editGameSuggestion, gameMiddleware.isSelfOrAdmin);
+
 
 module.exports = router;
