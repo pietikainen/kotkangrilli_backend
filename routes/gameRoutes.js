@@ -32,7 +32,7 @@ router.get('/search/:param', gameController.getGameFromIgdb);
 
 router.get('/cover/:id', gameController.getGameCoverFromIgdb);
 
-router.put('/:id', gameController.editGameSuggestion, gameMiddleware.isSelfOrAdmin);
+router.put('/:id', gameMiddleware.isSelfOrAdmin, gameController.editGameSuggestion);
 
 
 module.exports = router;
