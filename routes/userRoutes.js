@@ -15,7 +15,7 @@ router.get('', userController.getAllUsers);
 router.get('/user-profiles', userController.getAllUserProfiles);
 
 router.use(adminMiddleware.ensureAdmin);
-router.patch('/:userId/userlevel', adminController.updateUserRole);
+router.patch('/:userId/userlevel', adminController.updateUserLevel);
 
 
 module.exports = router;

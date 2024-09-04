@@ -9,7 +9,7 @@ const Participation = require('../models/Participation');
 
 // Update user level
 // 1: normal user, 1001: admin, 2001: superadmin
-exports.updateUserlevel = async (req, res) => {
+exports.updateUserLevel = async (req, res) => {
     console.log("received PATCH request to /api/admin/user/:userId");
     const userId = req.params.userId;
     const { userlevel } = req.body;
