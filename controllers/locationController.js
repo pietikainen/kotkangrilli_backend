@@ -1,7 +1,6 @@
 // locationController.js
 
 const Location = require('../models/Location');
-const Event = require('../models/Event');
 
 
 exports.getAllLocations = async (req, res) => {
@@ -24,18 +23,18 @@ exports.getAllLocations = async (req, res) => {
 
 exports.addLocation = async (req, res) => {
     console.log("received POST request to /api/locations");
-    const { locationName, locationDescription, locationAddress, locationCity, locationCapacity } = req.body;
+    const { name, description, address, city, capacity, price } = req.body;
 
     try {
         const newLocation = await Location.query().insert({
-            name: locationName,
-            description: locationDescription,
-            address: locationAddress, // tarvisko tähän vielä lisätä postinumero?
-            city: locationCity,
-            capacity: locationCapacity
-
+            name,
+            description,
+            address, // tarvisko tähän vielä lisätä postinumero?
+            city,
+            capacity,
+            price
         });
-        res.status(200).json({
+        res.status(201).json({
             success: true,
             data: newLocation
         });
