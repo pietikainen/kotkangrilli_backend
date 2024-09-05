@@ -16,11 +16,18 @@ exports.getIgdbTokenFromConfig = async (req, res) => {
         const token = await Config.query().where('key', 'igdbToken');
         const expiry = await Config.query().where('key', 'igdbTokenExpires');
 
+        if (token.length === 0 || expiry.length === 0) {
+            return {
+                token: null,
+                expiry: null
+            }
+        }
+
         return {
             token: token[0].value,
             expiry: expiry[0].value
         };
-        
+
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -34,12 +41,12 @@ exports.updateIgdbTokenInConfig = async (req, res) => {
     console.log("start updateTokenInConfig");
 
     try {
-        
+
         // get new token from IGDB with axios
 
         const response = await axios({
-            url: 'https://id.twitch.tv/oauth2/token?client_id=' + 
-            process.env.IGDB_CLIENT_ID + '&client_secret=' + 
+            url: 'https://id.twitch.tv/oauth2/token?client_id=' +
+            process.env.IGDB_CLIENT_ID + '&client_secret=' +
             process.env.IGDB_CLIENT_SECRET + '&grant_type=client_credentials',
             method: 'post'
         });
@@ -50,12 +57,14 @@ exports.updateIgdbTokenInConfig = async (req, res) => {
         const expiry = response.data.expires_in * 1000 + Date.now();
 
         await Config.query()
-            .patch({value: token})
-            .where('key', 'igdbToken');
+            .insert({ key: 'igdbToken', value: token})
+            .onConflict('key')
+            .merge();
 
         await Config.query()
-            .patch({value: expiry})
-            .where('key', 'igdbTokenExpires');
+            .insert({ key: 'igdbTokenExpires', value: expiry})
+            .onConflict('key')
+            .merge();
 
     } catch (error) {
         console.log("error updating token in config table", error.message);

@@ -32,7 +32,7 @@ exports.up = function (knex) {
     })
     .createTable('config', (table) => {
       table.increments('id').primary();
-      table.string('key').notNullable();
+      table.string('key').unique().notNullable();
       table.string('value').notNullable();
       table.timestamps(true, true);
     })

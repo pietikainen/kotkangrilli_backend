@@ -13,7 +13,7 @@ router.use((req, res, next) => {
 
     const expiryDate = data.expiry;
 
-    if (now > expiryDate) {
+    if (!expiryDate || now > expiryDate) {
         configController.updateIgdbTokenInConfig();
     }
     next();
