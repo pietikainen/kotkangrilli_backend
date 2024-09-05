@@ -30,32 +30,32 @@ const redisClient = redis.createClient({
 });
 
 
-// SOS! Bypass authentication for testing purposes SOS! //
 const bypassAuthentication = (req, res, next) => {
 
   req.user = { id: 1, userlevel: 9 };
   req.isAuthenticated = () => true;
   next();
 }
-
 if (process.env.NODE_ENV === 'development') {
   app.use(bypassAuthentication);
 }
-// SOS! Bypass authentication for testing purposes SOS! //
-
-
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(session({ 
-  store: new RedisStore({ client: redisClient }),
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false }
-}));
-
+if (process.env.NODE_ENV === 'development') {
+  app.use(session({
+    store: new RedisStore({ client: redisClient }),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }
+  }));
+} else {
+  app.use(session({
+    secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: false
+  }));
+}
 const corsOptions = {
   origin: process.env.CORS_ORIGIN.split(','),
   credentials: true
