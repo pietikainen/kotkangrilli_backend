@@ -47,7 +47,7 @@ exports.addGame = async (req, res) => {
 
   try {
 
-    if (!externalApiId || !title || !image || !price || !store || !description || !link || !players || !isLan) {
+    if (!title || !isLan || !submittedBy) {
       return res.status(400).json({
         success: false,
         message: 'Missing required information'
