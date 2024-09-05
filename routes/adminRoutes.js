@@ -3,9 +3,12 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
-const adminMiddleware = require('../middleware/adminMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
 
 
-router.use(adminMiddleware.ensureAdmin);
+router.use(authMiddleware.isAdmin);
+
+// /admin/...
+
 
 module.exports = router;

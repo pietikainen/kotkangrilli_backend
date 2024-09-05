@@ -4,11 +4,12 @@ const express = require('express');
 const router = express.Router();
 
 const participationController = require('../controllers/participationController');
+const authMiddleware = require('../middleware/authMiddleware');
 
 router.post('/:eventId', participationController.addParticipationToEvent);
-router.delete('/:id', participationController.removeParticipationFromEvent);
+router.delete('/:id', authMiddleware.isSelfOrAdmin, participationController.removeParticipationFromEvent);
 router.get('/:eventId', participationController.getParticipationToEvent);
-router.put('/:id', participationController.updateParticipationToEvent);
+router.put('/:id', authMiddleware.isSelfOrAdmin, participationController.updateParticipationToEvent);
 
 
 // mieti joskus tätä, mistä sais kaikki :3
