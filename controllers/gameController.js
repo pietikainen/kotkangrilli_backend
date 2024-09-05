@@ -13,10 +13,19 @@ exports.getAllGames = async (req, res) => {
   console.log("received GET request to /api/games");
   try {
     const games = await Game.query();
+
+    if (!games) {
+      return res.status(404).json({
+        success: false,
+        message: 'No games found'
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: games
     });
+
   } catch (error) {
     console.log("error getting games", error.message);
     res.status(500).json({
@@ -37,6 +46,14 @@ exports.addGame = async (req, res) => {
   // const gameSubmittedBy = 1; 
 
   try {
+
+    if (!externalApiId || !title || !image || !price || !store || !description || !link || !players || !isLan) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required information'
+      });
+    }
+
     const newGame = await Game.query().insert({
       externalApiId,
       title,
@@ -54,6 +71,7 @@ exports.addGame = async (req, res) => {
       success: true,
       data: newGame
     });
+
   } catch (error) {
     console.log("error adding game", error.message);
     res.status(500).json({
@@ -87,17 +105,24 @@ exports.getGameFromIgdb = async (req, res) => {
       data: `fields name, cover; limit 5; search "${param}"; where category = 0;`
     });
 
+    if (response.data.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No games found'
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: response.data
     });
+
   } catch (error) {
-    console.log("error fetching game from external API", error.message);
     console.log("error response data: ", error.response ? error.response.data : 'No response data');
 
     res.status(500).json({
       success: false,
-      message: 'Error fetching game from external API',
+      message: 'Error fetching game from IGDB API',
       error: error.message
     });
   }
@@ -126,19 +151,23 @@ exports.getGameDetailsFromIgdb = async (req, res) => {
       data: `fields *; where id = ${id};`
     });
 
-    console.log("response.data: " + response.data);
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        message: 'No game found with this ID'
+      });
+    }
 
     res.status(200).json({
       success: true,
       data: response.data
     });
   } catch (error) {
-    console.log("error fetching game details from external API", error.message);
     console.log("error response data: ", error.response ? error.response.data : 'No response data');
 
     res.status(500).json({
       success: false,
-      message: 'Error fetching game details from external API',
+      message: 'Error fetching game from IGDB API',
       error: error.message
     });
   }
@@ -220,6 +249,13 @@ exports.getGameStoreUrl = async (req, res) => {
     // find the store url from json data where category = 13 or 17 or 16
     // 13 = steam, 17 = gog, 16 = epic
 
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        message: 'No website found with this ID'
+      });
+    }
+
     let storeUrl = '';
 
     for (let i = 0; i < response.data.length; i++) {
@@ -241,6 +277,13 @@ exports.getGameStoreUrl = async (req, res) => {
         },
         data: `fields *; where game = ${id};`
       });
+
+    if (!response) {
+      return res.status(404).json({
+        success: false,
+        message: 'No external game found with this ID'
+      });
+    }
 
       // find the store url from json data where category = 1 or 5 or 26
       // 1 = steam, 5 = gog, 26 = epic
@@ -283,6 +326,13 @@ exports.editGameSuggestion = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Game not found'
+      });
+    }
+
+    if (!submittedBy === req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden'
       });
     }
 

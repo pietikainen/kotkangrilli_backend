@@ -44,7 +44,7 @@ app.use('/api', apiRoutes);
 
 
 app.get('/', (req, res) => {
-  res.send('<a href="/auth/discord">Login with Discord</a>');
+  res.status(418).json({ message: 'I am a teapot, DERP.' });
 });
 
 const PORT = process.env.PORT || 5000;

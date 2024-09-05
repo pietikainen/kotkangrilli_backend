@@ -7,10 +7,19 @@ exports.getAllLocations = async (req, res) => {
     console.log("received GET request to /api/locations");
     try {
         const locations = await Location.query();
+        
+        if (!locations) {
+            return res.status(404).json({
+                success: false,
+                message: 'No locations found'
+            });
+        }
+        
         res.status(200).json({
             success: true,
             data: locations
         });
+
     } catch (error) {
         console.log("error getting locations", error.message);
         res.status(500).json({
@@ -34,10 +43,12 @@ exports.addLocation = async (req, res) => {
             capacity,
             price
         });
+
         res.status(201).json({
             success: true,
             data: newLocation
         });
+
     } catch (error) {
         console.log("error adding location", error.message);
         res.status(500).json({
@@ -54,12 +65,14 @@ exports.deleteLocation = async (req, res) => {
 
     try {
         const location = await Location.query().findById(locationId);
+
         if (!location) {
             return res.status(404).json({
                 success: false,
                 message: 'Location not found'
             });
         }
+
         await Location.query().deleteById(locationId);
         res.status(200).json({
             success: true,
@@ -82,6 +95,14 @@ exports.updateLocation = async (req, res) => {
     const { locationName, locationDescription, locationAddress, locationCity, locationCapacity } = req.body;
 
     try {
+
+        if (!Location.query.findById(locationId)) {
+            return res.status(404).json({
+                success: false,
+                message: 'Location not found'
+            });
+        }
+        
         const updatedLocation = await Location.query().updateAndFetchById(locationId, {
             name: locationName,
             description: locationDescription,
@@ -89,11 +110,12 @@ exports.updateLocation = async (req, res) => {
             city: locationCity,
             capacity: locationCapacity
         });
-
+        
         res.status(200).json({
             success: true,
             data: updatedLocation
         });
+
     } catch (error) {
         console.log("error updating location", error.message);
         res.status(500).json({
@@ -110,16 +132,19 @@ exports.getLocationById = async (req, res) => {
 
     try {
         const location = await Location.query().findById(locationId);
+
         if (!location) {
             return res.status(404).json({
                 success: false,
                 message: 'Location not found'
             });
         }
+
         res.status(200).json({
             success: true,
             data: location
         });
+
     } catch (error) {
         console.log("error getting location", error.message);
         res.status(500).json({
