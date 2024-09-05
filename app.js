@@ -32,23 +32,27 @@ if (process.env.NODE_ENV === 'development') {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-if (process.env.NODE_ENV === 'development') {
-  app.use(session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false }
-  }));
-} else {
+if (process.env.NODE_ENV === 'production') {
   const { createClient } = require('redis');
   const RedisStore = require('connect-redis').default;
   const redisClient = createClient()
   redisClient.connect().catch(console.error)
   app.use(session({
     store: new RedisStore({ client: redisClient, prefix: "kg_sess:" }),
-    secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: false
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: true }
+  }));
+} else {
+  app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }
   }));
 }
+
 const corsOptions = {
   origin: process.env.CORS_ORIGIN.split(','),
   credentials: true
