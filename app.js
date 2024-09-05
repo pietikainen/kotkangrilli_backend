@@ -10,6 +10,9 @@ const passport = require('./controllers/authController');
 const cors = require('cors');
 
 
+
+
+
 dotenv.config();
 
 const app = express();
@@ -18,13 +21,29 @@ const knex = Knex(knexConfig.development);
 // Bind all Models to the knex instance
 Model.knex(knex);
 
+
+// SOS! Bypass authentication for testing purposes SOS! //
+const bypassAuthentication = (req, res, next) => {
+
+  req.user = { id: 1, userlevel: 9 };
+  req.isAuthenticated = () => true;
+  next();
+}
+
+if (process.env.NODE_ENV === 'development') {
+  app.use(bypassAuthentication);
+}
+// SOS! Bypass authentication for testing purposes SOS! //
+
+
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({ secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: false }));
 
 const corsOptions = {
-  origin: ['http://localhost:3000', 'http://localhost:5000'],
-    credentials: true
+  origin: process.env.CORS_ORIGIN.split(','),
+  credentials: true
 };
 
 app.use(cors(corsOptions));
@@ -32,7 +51,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 const proxyRoutes = require('./routes/proxyRoutes');
-app.use(express.text({type: '*/*'}));
+app.use(express.text({ type: '*/*' }));
 app.use(express.json());
 app.use('/proxy', proxyRoutes);
 
