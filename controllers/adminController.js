@@ -5,6 +5,7 @@ const Event = require('../models/Event');
 const Location = require('../models/Location');
 const Game = require('../models/Game');
 const Participation = require('../models/Participation');
+const Vote = require('../models/Vote');
 
 
 // Update user level
@@ -59,4 +60,61 @@ exports.updateUserLevel = async (req, res) => {
             error: error.message
         });
     }
+}
+
+// Drop all games and votes
+exports.dropGamesAndVotes = async (req, res) => {
+    try {        
+        // Delete votes first because of foreign key constraint
+        await Vote.query().delete();
+        await Game.query().delete();
+
+        res.status(200).json({
+            success: true,
+            message: 'Votes and games deleted'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error deleting games and votes',
+            error: error.message
+        });
+    }
+}
+
+
+// OBS! Not for use.
+exports.calculateVotes = async (req, res) => {
+    try {
+
+        const winnerLimit = req.params.winnerLimit || 4;
+
+        const votes = await Vote.query();
+
+        // Get most voted games
+        const winners = await Vote.query().select('gameId').count('gameId as votes').groupBy('gameId').orderBy('votes', 'desc').limit(winnerLimit);
+
+        // Get the most voted games from games table
+        const games = await Game.query().findByIds(winners.map(winner => winner.gameId));
+
+        // Add the votes to the games
+        games.forEach(game => {
+            const title = games.find(game => game.id === winner.gameId);
+            title.votes_amount = winners.find(winner => winner.gameId === game.id).votes;
+        });
+
+        console.log(games);
+
+
+        return res.status(200).json(winners);
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error calculating votes',
+            error: error.message
+        });
+    }
+
+
 }
