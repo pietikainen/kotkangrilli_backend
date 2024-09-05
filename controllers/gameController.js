@@ -2,6 +2,7 @@
 const Game = require('../models/Game');
 const axios = require('axios');
 const Config = require('../models/Config');
+const authMiddleware = require('../middleware/authMiddleware');
 
 async function getIgdbTokenFromConfig() {
   const token = await Config.query().where('key', 'igdbToken');
@@ -360,6 +361,39 @@ exports.editGameSuggestion = async (req, res) => {
       error: error.message
     });
   }
+}
 
+exports.deleteGameSuggestion = async (req, res) => {
+  const gameId = req.params.id;
 
+  try {
+    const game = await Game.query().findById(gameId);
+
+    if (!game) {
+      return res.status(404).json({
+        success: false,
+        message: 'Game not found'
+      });
+    }
+
+    if (!submittedBy === req.user.id || !authMiddleware.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden'
+      });
+    }
+
+    await game.$query().delete();
+
+    res.status(200).json({
+      success: true,
+      message: 'Game deleted'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting game suggestion',
+      error: error.message
+    });
+  }
 }

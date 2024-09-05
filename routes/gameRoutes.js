@@ -4,6 +4,7 @@ const router = express.Router();
 const gameController = require('../controllers/gameController');
 const configController = require('../controllers/configController');
 const gameMiddleware = require('../middleware/gameMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // Middleware to check IDGB token expiry date - if old, get new.
 
@@ -23,6 +24,9 @@ router.get('/store-url/:id', gameController.getGameStoreUrl);
 
 // POST route to add a new game
 router.post('', gameController.addGame);
+
+// DELETE route to delete a game from suggestions
+router.delete('/:id', authMiddleware.isAdmin, gameController.deleteGameSuggestion);
 
 // GET route to get all games
 router.get('', gameController.getAllGames);
