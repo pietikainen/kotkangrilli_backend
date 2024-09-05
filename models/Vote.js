@@ -8,6 +8,7 @@ class Vote extends Model {
     static get relationMappings() {
         const User = require("./User");
         const Game = require("./Game");
+        const Event = require("./Event");
         return {
             user: {
                 relation: Model.BelongsToOneRelation,
@@ -17,12 +18,22 @@ class Vote extends Model {
                     to: "users.id",
                 }
             },
+            
             game: {
                 relation: Model.BelongsToOneRelation,
                 modelClass: Game,
                 join: {
                     from: "votes.gameId",
                     to: "games.id",
+                }
+            },
+
+            event: {
+                relation: Model.BelongsToOneRelation,
+                modelClass: Event,
+                join: {
+                    from: "votes.eventId",
+                    to: "events.id",
                 }
             }
         };
