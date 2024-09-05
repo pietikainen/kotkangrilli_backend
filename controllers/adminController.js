@@ -8,7 +8,6 @@ const Participation = require('../models/Participation');
 
 
 // Update user level
-// 1: normal user, 1001: admin, 2001: superadmin
 exports.updateUserLevel = async (req, res) => {
     console.log("received PATCH request to /api/admin/user/:userId");
     const userId = req.params.userId;
@@ -24,8 +23,29 @@ exports.updateUserLevel = async (req, res) => {
             });
         }
 
-        user.userlevel = userlevel;
-        await user.$query().patch();
+        if (userlevel < 0 || userlevel > 9) {
+            return res.status(400).json({
+                success: false,
+                message: 'User level must be between 0 and 9'
+            });
+        }
+
+        if (user.userlevel === 9 && userlevel < 9) {
+            return res.status(403).json({
+                success: false,
+                message: 'Cannot downgrade superadmin'
+            });
+        }
+
+        if (req.user.userlevel < 9) {
+            return res.status(403).json({
+                success: false,
+                message: 'Forbidden'
+            });
+        }
+
+        // user.userlevel = userlevel; 
+        await user.$query().patch({ userlevel });
 
         res.status(200).json({
             success: true,
