@@ -9,12 +9,6 @@ const knexConfig = require('./knexfile');
 const passport = require('./controllers/authController');
 const cors = require('cors');
 
-const RedisStore = require('connect-redis')(session);
-const redis = require('redis');
-
-
-
-
 
 dotenv.config();
 
@@ -23,11 +17,6 @@ const knex = Knex(knexConfig.development);
 
 // Bind all Models to the knex instance
 Model.knex(knex);
-
-const redisClient = redis.createClient({
-  host: process.env.REDIS_HOST,
-  port: process.env.REDIS_PORT
-});
 
 
 const bypassAuthentication = (req, res, next) => {
@@ -45,14 +34,18 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 if (process.env.NODE_ENV === 'development') {
   app.use(session({
-    store: new RedisStore({ client: redisClient }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: { secure: false }
   }));
 } else {
+  const { createClient } = require('redis');
+  const RedisStore = require('connect-redis').default;
+  const redisClient = createClient()
+  redisClient.connect().catch(console.error)
   app.use(session({
+    store: new RedisStore({ client: redisClient, prefix: "kg_sess:" }),
     secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: false
   }));
 }
