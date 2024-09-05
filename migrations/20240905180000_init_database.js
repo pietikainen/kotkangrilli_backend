@@ -43,6 +43,7 @@ exports.up = function (knex) {
       table.string('city').notNullable();
       table.integer('capacity').unsigned().notNullable();
       table.string('description');
+      table.integer('price').unsigned().notNullable();
       table.timestamps(true, true);
     })
     .createTable('events', (table) => {
