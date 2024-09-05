@@ -9,6 +9,9 @@ const knexConfig = require('./knexfile');
 const passport = require('./controllers/authController');
 const cors = require('cors');
 
+const RedisStore = require('connect-redis')(session);
+const redis = require('redis');
+
 
 
 
@@ -20,6 +23,11 @@ const knex = Knex(knexConfig.development);
 
 // Bind all Models to the knex instance
 Model.knex(knex);
+
+const redisClient = redis.createClient({
+  host: process.env.REDIS_HOST,
+  port: process.env.REDIS_PORT
+});
 
 
 // SOS! Bypass authentication for testing purposes SOS! //
@@ -39,7 +47,14 @@ if (process.env.NODE_ENV === 'development') {
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(session({ secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: false }));
+
+app.use(session({ 
+  store: new RedisStore({ client: redisClient }),
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }
+}));
 
 const corsOptions = {
   origin: process.env.CORS_ORIGIN.split(','),
