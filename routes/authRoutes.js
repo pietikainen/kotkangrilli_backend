@@ -8,7 +8,7 @@ router.get('/discord', passport.authenticate('discord'));
 router.get('/discord/callback',
   passport.authenticate('discord', { failureRedirect: '/' }),
   (req, res) => {
-    res.redirect('http://localhost:3000/dashboard');
+    res.redirect(process.env.CALLBACK_REDIRECT_URL);
   }
 );
 
