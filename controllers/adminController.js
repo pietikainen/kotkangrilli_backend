@@ -31,13 +31,6 @@ exports.updateUserLevel = async (req, res) => {
             });
         }
 
-        if (user.userlevel === 9 && userlevel < 9) {
-            return res.status(403).json({
-                success: false,
-                message: 'Cannot downgrade superadmin'
-            });
-        }
-
         if (req.user.userlevel < 9) {
             return res.status(403).json({
                 success: false,
@@ -62,16 +55,16 @@ exports.updateUserLevel = async (req, res) => {
     }
 }
 
-// Drop all games and votes
-exports.dropGamesAndVotes = async (req, res) => {
+// Truncate all games and votes
+exports.truncateGamesAndVotes = async (req, res) => {
     try {        
-        // Delete votes first because of foreign key constraint
-        await Vote.query().delete();
-        await Game.query().delete();
+        // Truncate votes first because of foreign key constraint
+        await Vote.query().truncate();
+        await Game.query().truncate();
 
         res.status(200).json({
             success: true,
-            message: 'Votes and games deleted'
+            message: 'Votes and games truncated'
         });
     } catch (error) {
         res.status(500).json({
