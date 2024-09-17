@@ -4,7 +4,7 @@ const { Model } = require('objection');
 
 class Participation extends Model {
     static get tableName() {
-        return 'event_participants';
+        return 'participations';
     }
     
     static get relationMappings() {
@@ -15,7 +15,7 @@ class Participation extends Model {
             relation: Model.BelongsToOneRelation,
             modelClass: User,
             join: {
-            from: 'event_participants.userId',
+            from: 'participations.userId',
             to: 'users.id',
             },
         },
@@ -23,7 +23,7 @@ class Participation extends Model {
             relation: Model.BelongsToOneRelation,
             modelClass: Event,
             join: {
-            from: 'event_participants.eventId',
+            from: 'participations.eventId',
             to: 'events.id',
             },
         },
