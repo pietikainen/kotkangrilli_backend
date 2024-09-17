@@ -8,14 +8,14 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 // Middleware to check IDGB token expiry date - if old, get new.
 
-router.use((req, res, next) => {
+router.use(async (req, res, next) => {
     const now = new Date();
-    const data = configController.getIgdbTokenFromConfig(req, res);
+    const data = await configController.getIgdbTokenFromConfig(req, res);
 
     const expiryDate = data.expiry;
 
     if (!expiryDate || now > expiryDate) {
-        configController.updateIgdbTokenInConfig();
+        await configController.updateIgdbTokenInConfig();
     }
     next();
 })
