@@ -1,6 +1,7 @@
 // controllers/participationController.js
 const Participation = require('../models/Participation');
 const Event = require('../models/Event');
+const bodyParser = require('body-parser');
 
 const addParticipationToEvent = async (req, res) => {
     try {
@@ -22,6 +23,8 @@ const addParticipationToEvent = async (req, res) => {
             arrivalDate,
         });
 
+        console.log(participation);
+
         res.status(201).json(
             {
                 success: true,
@@ -30,28 +33,34 @@ const addParticipationToEvent = async (req, res) => {
         );
 
     } catch (err) {
+        console.log(err);
         res.status(500).json({ success: false, message: 'Error adding participation to event' });
     }
 };
 
 const removeParticipationFromEvent = async (req, res) => {
     try {
+        // Destructure the participation id from the request parameters
         const { id } = req.params;
         const { userId } = req.user;
 
-        if (!userId == id) {
+        const participant = await Participation.query().findById(id).where('userId', userId);
+        const participation = await Participation.query().deleteById(id);
+
+        // Check if req.user === userId
+        if (!participant) {
             return res.status(403).json({ success: false, message: 'Forbidden' });
         }
 
-        if (!Participation.query().findById(id)) {
-            return res.status(404).json({ success: false, message: 'Participation not found' });
-        }        
-
-        const participation = await Participation.query().delete().where(id);
-
-        res.status(200).json({ success: true, message: 'Participation removed from event' });
+        if (participation) {
+            res.status(200).json({ success: true, message: 'Participation removed from event' });
+        }
+        else {
+            res.status(404).json({ success: false, message: 'Participation not found' });
+        }
 
     } catch (err) {
+        console.log(err);
         res.status(500).json({ message: 'Error removing participation from event' });
     }
 };
@@ -59,15 +68,24 @@ const removeParticipationFromEvent = async (req, res) => {
 const getParticipationToEvent = async (req, res) => {
     try {
         const { eventId } = req.params;
-        const { userId } = req.user;
 
-        const participation = await Participation.query().where(eventId, userId);
-        res.status(200).json({ success: true, data: participation });
+        console.log(eventId);
+
+        const participation = await Participation.query().where('eventId', eventId);
+
+        if (!participation) {
+            return res.status(404).json({ success: false, message: 'Participation not found' });
+        } else {
+            res.status(200).json({ success: true, data: participation });
+        }
     } catch (err) {
+        console.log(err);
         res.status(500).json({ message: 'Error getting participation to event' });
     }
 };
 
+
+// TODO: Tää vois olla tutkittavana.
 const updateParticipationToEvent = async (req, res) => {
     try {
         const { id } = req.params;
