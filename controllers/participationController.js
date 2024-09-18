@@ -1,8 +1,6 @@
 // controllers/participationController.js
 const Participation = require('../models/Participation');
 const Event = require('../models/Event');
-const bodyParser = require('body-parser');
-const User = require("../models/User");
 const Vote = require("../models/Vote");
 
 const addParticipationToEvent = async (req, res) => {
@@ -36,7 +34,7 @@ const addParticipationToEvent = async (req, res) => {
             if (!userId) {
                 arr.push("User ID");
             }
-            return res.status(400).json({ success: false, message: 'Missing required information: ' + errorMessage.join(", ") });
+            return res.status(400).json({ success: false, message: 'Missing required information: ' + arr.join(", ") });
         }
 
         const participation = await Participation.query().insert({
