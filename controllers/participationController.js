@@ -2,19 +2,41 @@
 const Participation = require('../models/Participation');
 const Event = require('../models/Event');
 const bodyParser = require('body-parser');
+const User = require("../models/User");
+const Vote = require("../models/Vote");
 
 const addParticipationToEvent = async (req, res) => {
     try {
         const { eventId } = req.params;
-        const { userId } = req.user;
+        const { userId } = req.user.id;
         const { arrivalDate } = req.body;
 
         if (!Event.query().findById(req.params.eventId)) {
             return res.status(404).json({ success: false, message: 'Event not found' });
         }
 
-        if (!eventId || !userId || !arrivalDate) {
-            return res.status(400).json({ success: false, message: 'Missing required information' });
+        const isUserRegisteredToEvent = await Participation.query()
+            .select('id')
+            .where('userId', userId)
+            .andWhere('eventId', eventId)
+
+        // Check if user is already registered
+        if (isUserRegisteredToEvent != 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'User is already registered for the event'
+            })
+        }
+
+        if (!eventId || !userId) {
+            let arr = [""]
+            if (!eventId) {
+                arr.push("Event ID");
+            }
+            if (!userId) {
+                arr.push("User ID");
+            }
+            return res.status(400).json({ success: false, message: 'Missing required information: ' + errorMessage.join(", ") });
         }
 
         const participation = await Participation.query().insert({
@@ -42,15 +64,36 @@ const removeParticipationFromEvent = async (req, res) => {
     try {
         // Destructure the participation id from the request parameters
         const { id } = req.params;
-        const { userId } = req.user;
+        const { userId } = req.user.id;
 
-        const participant = await Participation.query().findById(id).where('userId', userId);
-        const participation = await Participation.query().deleteById(id);
+        const registrations = await Participation.query().findById(id)
+            .select('id', 'userId', 'eventId')
+            .where('id', id);
+
+        if (registrations.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Participation not found"
+            });
+        }
 
         // Check if req.user === userId
-        if (!participant) {
-            return res.status(403).json({ success: false, message: 'Forbidden' });
+        if (userId !== registrations.userId) {
+            return res.status(403).json({ success: false, message: 'Error: User mismatch' });
         }
+
+        // Delete user's votes from event
+        const deleteVotes = await Vote.query().delete()
+            .where('eventId', registrations.eventId)
+            .andWhere('userId', userId);
+
+        if (!deleteVotes) {
+            console.log("Unable to delete votes from user " + userId + " from event " + registrations.eventId);
+        } else {
+            console.log("Votes deleted from event " + registrations.eventId);
+        }
+
+        const participation = await Participation.query().deleteById(id);
 
         if (participation) {
             res.status(200).json({ success: true, message: 'Participation removed from event' });
@@ -61,16 +104,13 @@ const removeParticipationFromEvent = async (req, res) => {
 
     } catch (err) {
         console.log(err);
-        res.status(500).json({ message: 'Error removing participation from event' });
+        res.status(500).json({ success: false, message: 'Error removing participation from event' });
     }
 };
 
 const getParticipationToEvent = async (req, res) => {
     try {
         const { eventId } = req.params;
-
-        console.log(eventId);
-
         const participation = await Participation.query().where('eventId', eventId);
 
         if (!participation) {
