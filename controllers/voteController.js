@@ -2,14 +2,13 @@
 
 const Vote = require('../models/Vote');
 const Participation = require('../models/Participation');
-const authMiddleware = require('../middleware/authMiddleware');
-const {isAdmin} = require("../middleware/authMiddleware");
+const { isAdmin } = require("../middleware/authMiddleware");
 
 
 // POST: Cast a vote
 exports.castVote = async (req, res) => {
     const eventId = req.params.eventId;
-    const userId = 1;
+    const { userId } = req.user.id;
     const gameId = req.params.gameId;
 
     try {
@@ -24,8 +23,7 @@ exports.castVote = async (req, res) => {
             .where('eventId', eventId)
             .andWhere('userId', userId);
 
-        // EI TOIMI VIELÄ
-        if (isUserRegistered != 0) {
+        if (isUserRegistered.length === 0) {
             return res.status(403).json({
                 success: false,
                 message: 'User is not registered to the event'
@@ -44,7 +42,6 @@ exports.castVote = async (req, res) => {
             userId,
             gameId
         });
-
 
         if (!newVote) {
             return res.status(400).json({
@@ -72,19 +69,19 @@ exports.castVote = async (req, res) => {
 exports.deleteVote = async (req, res) => {
 
     const voteId = req.params.voteId;
-    const userId = 6;
+    const { userId } = req.user.id;
+
+    console.log("voteID: ", voteId);
+    console.log("userId: ", userId);
 
     try {
-        // Check if user is the original voter
-
-        const isOriginalVoter = await Vote.query()
+        // Get the vote
+        const vote = await Vote.query()
+            .select('id', 'userId')
             .where('id', voteId)
-            .andWhere('userId', userId);
 
-        console.log("isOriginalVoter", isOriginalVoter);
-        console.log("userid", userId);
-        console.log("isoriginal.userid", isOriginalVoter.userId);
-        if (userId != isOriginalVoter.userId) {
+        // Check if deleter is the voter (or admin)
+        if (userId != vote[0].userId || !isAdmin()) {
         // if (!isOriginalVoter && !isAdmin()) {
             return res.status(403).json({
                 success: false,
@@ -93,12 +90,6 @@ exports.deleteVote = async (req, res) => {
         }
 
         const deleteVote = await Vote.query().deleteById(voteId);
-
-
-
-
-
-
         if (deleteVote) {
             return res.status(200).json({
                 success: true,
