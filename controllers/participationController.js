@@ -19,7 +19,7 @@ const addParticipationToEvent = async (req, res) => {
             .andWhere('eventId', eventId)
 
         // Check if user is already registered
-        if (isUserRegisteredToEvent != 0) {
+        if (isUserRegisteredToEvent.length !== 0) {
             return res.status(400).json({
                 success: false,
                 message: 'User is already registered for the event'
@@ -68,7 +68,7 @@ const removeParticipationFromEvent = async (req, res) => {
             .select('id', 'userId', 'eventId')
             .where('id', id);
 
-        if (registrations.length === 0) {
+        if (!registrations) {
             return res.status(404).json({
                 success: false,
                 message: "Participation not found"
