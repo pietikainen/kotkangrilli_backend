@@ -6,10 +6,10 @@ const Vote = require("../models/Vote");
 const addParticipationToEvent = async (req, res) => {
     try {
         const { eventId } = req.params;
-        const { userId } = req.user.id;
+        const userId = req.user.id;
         const { arrivalDate } = req.body;
 
-        if (!Event.query().findById(req.params.eventId)) {
+        if (!Event.query().findById(eventId)) {
             return res.status(404).json({ success: false, message: 'Event not found' });
         }
 
@@ -62,7 +62,7 @@ const removeParticipationFromEvent = async (req, res) => {
     try {
         // Destructure the participation id from the request parameters
         const { id } = req.params;
-        const { userId } = req.user.id;
+        const userId = req.user.id;
 
         const registrations = await Participation.query().findById(id)
             .select('id', 'userId', 'eventId')

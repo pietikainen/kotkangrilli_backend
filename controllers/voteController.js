@@ -8,7 +8,7 @@ const { isAdmin } = require("../middleware/authMiddleware");
 // POST: Cast a vote
 exports.castVote = async (req, res) => {
     const eventId = req.params.eventId;
-    const { userId } = req.user.id;
+    const userId = req.user.id;
     const gameId = req.params.gameId;
 
     try {
@@ -30,7 +30,7 @@ exports.castVote = async (req, res) => {
             })
         }
 
-        if (checkForExisting != 0) {
+        if (checkForExisting.length !== 0) {
             return res.status(400).json({
                 success: false,
                 message: "Vote already exists"
@@ -69,7 +69,7 @@ exports.castVote = async (req, res) => {
 exports.deleteVote = async (req, res) => {
 
     const voteId = req.params.voteId;
-    const { userId } = req.user.id;
+    const userId = req.user.id;
 
     console.log("voteID: ", voteId);
     console.log("userId: ", userId);
@@ -81,7 +81,7 @@ exports.deleteVote = async (req, res) => {
             .where('id', voteId)
 
         // Check if deleter is the voter (or admin)
-        if (userId != vote[0].userId || !isAdmin()) {
+        if (userId !== vote[0].userId || !isAdmin()) {
         // if (!isOriginalVoter && !isAdmin()) {
             return res.status(403).json({
                 success: false,
