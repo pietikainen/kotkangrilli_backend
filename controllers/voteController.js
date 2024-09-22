@@ -1,6 +1,7 @@
 // voteController.js
 
 const Vote = require('../models/Vote');
+const Event = require('../models/Event');
 const Participation = require('../models/Participation');
 const { isAdmin } = require("../middleware/authMiddleware");
 
@@ -12,6 +13,17 @@ exports.castVote = async (req, res) => {
     const gameId = req.params.gameId;
 
     try {
+
+        const maxVotes = await Event.query().select('winnerGamesCount').where('id', eventId)
+        const existingVotes = await Vote.query().select('id').where('userId', userId)
+
+        if (maxVotes[0].winnerGamesCount <= existingVotes.length) {
+            return res.status(400).json({
+                success: false,
+                message: "Error: Max limit reached."
+            })
+        }
+
         const checkForExisting = await Vote.query()
             .select('id')
             .where('eventId', eventId)
@@ -36,6 +48,11 @@ exports.castVote = async (req, res) => {
                 message: "Vote already exists"
             });
         }
+
+
+
+
+
 
         const newVote = await Vote.query().insert({
             eventId,
