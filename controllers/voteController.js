@@ -65,6 +65,41 @@ exports.castVote = async (req, res) => {
     }
 }
 
+// GET: Get users votes by Event ID
+
+exports.getVotesByUser = async (req, res) =>  {
+    const userId = req.user.id
+    const eventId = req.params.eventId;
+
+    try {
+
+        const votes = await Vote.query()
+            .where('eventId', eventId)
+            .andWhere('userId', userId);
+
+        if (!votes) {
+            return res.status(404).json({
+                success: false,
+                message: "Error: No votes found"
+            })
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: votes
+        })
+
+
+    } catch (error) {
+        console.log("error response data: ", error.response ? error.response.data : 'No votes found');
+        return res.status(500).json({
+            success: false,
+            message: 'Error getting vote',
+            error: error.message
+        })
+    }
+}
+
 // DELETE: Delete a vote by voteId
 exports.deleteVote = async (req, res) => {
 

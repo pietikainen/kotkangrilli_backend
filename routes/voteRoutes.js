@@ -13,8 +13,8 @@ router.post('/:eventId/:gameId', voteController.castVote);
 // GET: Calculate votes and update winners with amount of param (int) (ADMIN ONLY)
 router.get('/calculate/:limit', authMiddleware.isAdmin, adminController.calculateVotes);
 
-// GET route to get all votes by userID
-
+// GET route to get all votes per Event ID by req.user.id
+router.get('/:eventId/', voteController.getVotesByUser);
 // GET route to get all votes by eventID
 
 // GET route to get all votes by gameID
