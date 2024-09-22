@@ -377,7 +377,7 @@ exports.deleteGameSuggestion = async (req, res) => {
       });
     }
 
-    if (!submittedBy === req.user.id || !authMiddleware.isAdmin) {
+    if (!game.submittedBy === req.user.id || !authMiddleware.isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'Forbidden'
