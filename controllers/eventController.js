@@ -2,20 +2,6 @@
 
 const Event = require('../models/Event');
 
-// REFERENCE
-// table.increments('id').primary();
-// table.string('title').notNullable();
-// table.string('description');
-// table.integer('location').unsigned().notNullable().references('id').inTable('locations');
-// table.date('startDate').notNullable();
-// table.date('endDate').notNullable();
-// table.boolean('votingOpen').defaultTo(false);
-// table.boolean('active').defaultTo(false);
-// table.integer('lanMaster').unsigned().references('id').inTable('users');
-// table.integer('paintCompoWinner').unsigned().references('id').inTable('users');
-// table.integer('organizer').unsigned().notNullable();
-
-
 
 exports.getAllEvents = async (req, res) => {
     console.log("received GET request to /api/events");
@@ -37,13 +23,14 @@ exports.getAllEvents = async (req, res) => {
 
 exports.addEvent = async (req, res) => {
     console.log("received POST request to /api/events");
-    const { title, description, location, startDate, endDate, votingOpen, active, lanMaster, paintCompoWinner, organizer } = req.body;
+    const { title, description, location, winnerGamesCount, startDate, endDate, votingOpen, active, lanMaster, paintCompoWinner, organizer } = req.body;
 
     try {
         const newEvent = await Event.query().insert({
             title,
             description,
             location,
+            winnerGamesCount,
             startDate,
             endDate,
             votingOpen,
@@ -70,16 +57,21 @@ exports.addEvent = async (req, res) => {
 exports.updateEvent = async (req, res) => {
     console.log("received PUT request to /api/events/:eventId");
     const eventId = req.params.eventId;
-    const { eventTitle, eventDescription, eventDate, eventLocation, eventOrganizer } = req.body;
+    const { title, description, location, startDate, endDate, winnerGamesCount, votingOpen, active, lanMaster, paintCompoWinner, organizer } = req.body;
 
     try {
         const updatedEvent = await Event.query().updateAndFetchById(eventId, {
-            title: eventTitle,
-            description: eventDescription,
-            location: eventLocation,
-            startDate: eventDate,
-            endDate: eventDate,
-            organizer: eventOrganizer
+            title,
+            description,
+            location,
+            startDate,
+            endDate,
+            winnerGamesCount,
+            votingOpen,
+            active,
+            lanMaster,
+            paintCompoWinner,
+            organizer: organizer || req.user.id
         });
 
         res.status(200).json({
