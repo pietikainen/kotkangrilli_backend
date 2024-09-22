@@ -44,7 +44,7 @@ exports.addGame = async (req, res) => {
   const submittedBy = req.user.id; // Assuming the user ID is stored in req.user.id after authentication
   console.log("SubmittedBy: " + submittedBy);
   // Presetting user ID for testing purposes
-  // const gameSubmittedBy = 1; 
+  // const gameSubmittedBy = 1;
 
   try {
 
@@ -210,7 +210,7 @@ exports.getGameCoverFromIgdb = async (req, res) => {
     }
 
     const coverUrl = `https://images.igdb.com/igdb/image/upload/t_cover_big/${response.data[0].image_id}.jpg`;
-    
+
     res.status(200).json({
       success: true,
       data: coverUrl
@@ -310,7 +310,7 @@ exports.getGameStoreUrl = async (req, res) => {
 }
 
 exports.getGameSubmittedBy = async (gameId) => {
-  
+
     const game = await Game.query().findById(gameId);
     return game.submittedBy;
 
@@ -318,7 +318,7 @@ exports.getGameSubmittedBy = async (gameId) => {
 
 exports.editGameSuggestion = async (req, res) => {
   const gameId = req.params.id;
-  const { externalApiId, title, image, price, link, store, players, isLan, description } = req.body;
+  const { externalApiId, title, image, price, link, store, players, isLan, description, submittedBy } = req.body;
 
   try {
     const game = await Game.query().findById(gameId);
@@ -330,7 +330,7 @@ exports.editGameSuggestion = async (req, res) => {
       });
     }
 
-    if (!submittedBy === req.user.id) {
+    if (!submittedBy === req.user.id || !authMiddleware.isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'Forbidden'
@@ -346,6 +346,7 @@ exports.editGameSuggestion = async (req, res) => {
     game.players = players;
     game.isLan = isLan;
     game.description = description;
+    game.submittedBy = submittedBy;
 
     await game.$query().patch();
 
