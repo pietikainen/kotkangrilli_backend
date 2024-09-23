@@ -75,11 +75,6 @@ const removeParticipationFromEvent = async (req, res) => {
             });
         }
 
-        // Check if req.user === userId
-        if (userId !== registrations.userId) {
-            return res.status(403).json({ success: false, message: 'Error: User mismatch' });
-        }
-
         // Delete user's votes from event
         const deleteVotes = await Vote.query().delete()
             .where('eventId', registrations.eventId)

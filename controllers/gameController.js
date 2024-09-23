@@ -2,7 +2,6 @@
 const Game = require('../models/Game');
 const axios = require('axios');
 const Config = require('../models/Config');
-const authMiddleware = require('../middleware/authMiddleware');
 
 async function getIgdbTokenFromConfig() {
   const token = await Config.query().where('key', 'igdbToken');
@@ -309,12 +308,6 @@ exports.getGameStoreUrl = async (req, res) => {
   }
 }
 
-exports.getGameSubmittedBy = async (gameId) => {
-
-    const game = await Game.query().findById(gameId);
-    return game.submittedBy;
-
-}
 
 exports.editGameSuggestion = async (req, res) => {
   const gameId = req.params.id;
@@ -327,13 +320,6 @@ exports.editGameSuggestion = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Game not found'
-      });
-    }
-
-    if (!submittedBy === req.user.id || !authMiddleware.isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: 'Forbidden'
       });
     }
 
@@ -374,13 +360,6 @@ exports.deleteGameSuggestion = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Game not found'
-      });
-    }
-
-    if (!game.submittedBy === req.user.id || !authMiddleware.isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: 'Forbidden'
       });
     }
 

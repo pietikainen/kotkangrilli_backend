@@ -71,12 +71,6 @@ exports.updateMeal = async (req, res) => {
             .select('id', 'chefId')
             .where('id', mealId)
 
-        if (userId !== meal[0].chefId) {
-            return res.status(403).json({
-                success: false,
-                message: 'Error: User mismatch'
-            })
-        }
         if (meal.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -120,7 +114,6 @@ exports.updateMeal = async (req, res) => {
 // DELETE: Delete meal with Meal ID
 exports.deleteMeal = async (req, res) => {
     const mealId = req.params.mealId;
-    const userId = req.user.id;
 
     try {
         // Check if user is the original chef
@@ -128,12 +121,6 @@ exports.deleteMeal = async (req, res) => {
             .select('id', 'chefId')
             .where('id', mealId)
 
-        if (userId !== meal[0].chefId) {
-            return res.status(403).json({
-                success: false,
-                message: 'Error: User mismatch'
-            })
-        }
         if (meal.length === 0) {
             return res.status(404).json({
                 success: false,

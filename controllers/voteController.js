@@ -3,7 +3,6 @@
 const Vote = require('../models/Vote');
 const Event = require('../models/Event');
 const Participation = require('../models/Participation');
-const { isAdmin } = require("../middleware/authMiddleware");
 
 
 // POST: Cast a vote
@@ -131,15 +130,6 @@ exports.deleteVote = async (req, res) => {
         const vote = await Vote.query()
             .select('id', 'userId')
             .where('id', voteId)
-
-        // Check if deleter is the voter (or admin)
-        if (userId !== vote[0].userId || !isAdmin()) {
-        // if (!isOriginalVoter && !isAdmin()) {
-            return res.status(403).json({
-                success: false,
-                message: 'Error: User mismatch'
-            });
-        }
 
         const deleteVote = await Vote.query().deleteById(voteId);
         if (deleteVote) {
