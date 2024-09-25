@@ -3,6 +3,32 @@ const Participation = require('../models/Participation');
 const Event = require('../models/Event');
 const Vote = require("../models/Vote");
 
+
+const getUserParticipations = async (req, res) => {
+    const userId = req.params.userId
+
+    try {
+        const participants = Participation.query()
+            .select('eventId')
+            .where('userId', userId)
+
+        if (!participants) {
+            return res.status(404).json({
+                success: false,
+                message: "No participations found"
+            })
+        } else {
+            return res.status(200).json({
+                success: true,
+                data: participants
+            })
+        }
+    } catch (error) {
+        console.log(error.message ? "error: " + error.message : error);
+    }
+}
+
+
 const addParticipationToEvent = async (req, res) => {
     try {
         const { eventId } = req.params;
@@ -141,5 +167,6 @@ module.exports = {
     addParticipationToEvent,
     removeParticipationFromEvent,
     getParticipationToEvent,
-    updateParticipationToEvent
+    updateParticipationToEvent,
+    getUserParticipations
 };
