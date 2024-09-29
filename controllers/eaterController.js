@@ -70,9 +70,12 @@ exports.getEaters = async (req, res) => {
 // DELETE: Delete eater from meal
 exports.deleteEater = async (req, res) => {
     const mealId = req.params.mealId;
+    const userId = req.user.id;
 
     try {
-        const deleteEater = await Eater.query().deleteById(mealId)
+        const deleteEater = await Eater.query().delete()
+            .where('mealId', mealId)
+            .andWhere('eaterId', userId);
 
         if (!deleteEater) {
             return res.status(404).json({
