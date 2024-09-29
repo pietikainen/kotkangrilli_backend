@@ -8,7 +8,7 @@ const getUserParticipations = async (req, res) => {
     const userId = req.params.userId
 
     try {
-        const participants = Participation.query()
+        const participants = await Participation.query()
             .select('eventId')
             .where('userId', userId)
 
