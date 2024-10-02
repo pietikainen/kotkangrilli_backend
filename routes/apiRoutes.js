@@ -15,6 +15,9 @@ router.use('/participations', require('./participationRoutes'));
 router.use('/locations', require('./locationRoutes'));
 router.use('/votes', require('./voteRoutes'));
 router.use('/meals', require('./mealRoutes'));
+router.use('/eaters', require('./eaterRoutes'));
+router.use('/carpools', require('./carpoolRoutes'));
+
 
 router.use(authMiddleware.isAdmin);
 router.use('/admin', require('./adminRoutes'));
