@@ -17,7 +17,7 @@ router.post('/:eventId', participationController.addParticipationToEvent);
 router.delete('/:id', or(isParticipant, isAdmin), participationController.removeParticipationFromEvent);
 router.get('/:eventId', participationController.getParticipationToEvent);
 router.put('/:id', or(isParticipant, isAdmin), participationController.updateParticipationToEvent);
-router.get('/user/:userId', isSelf(req => req.params.userId), participationController.getUserParticipations)
+router.get('/user/:userId', isSelf(req => Number(req.params.userId)), participationController.getUserParticipations)
 
 // mieti joskus tätä, mistä sais kaikki :3
 // router.get('/participations', participationController.getAllParticipations);
