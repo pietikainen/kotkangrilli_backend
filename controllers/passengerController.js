@@ -8,7 +8,7 @@ exports.getPassengersWithCarpoolId = async (req, res) => {
 
     try {
         const passengers = await Passenger.query()
-            .select('passengerId')
+            .select('id', 'passengerId')
             .where('carpoolId', carpoolId)
 
         if (!passengers) {
