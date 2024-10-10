@@ -108,6 +108,35 @@ exports.calculateVotes = async (req, res) => {
             error: error.message
         });
     }
+}
 
+// Function to get all votes combined with game data, by event ID
 
+exports.countVotesByEvent = async (req, res) => {
+    const eventId = req.params.eventId;
+
+    try {
+        const votes = await Vote.query()
+        .select('gameId')
+            .where('eventId', eventId)
+            .count('gameId as votes')
+            .groupBy('gameId');
+
+        if (!votes) {
+            return res.status(404).json({
+                success: false,
+                message: 'Votes not found'
+            });
+        }
+        res.status(200).json({
+            success: true,
+            data: votes
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error getting votes by event',
+            error: error.message
+        });
+    }
 }
