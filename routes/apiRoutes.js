@@ -18,7 +18,7 @@ router.use('/meals', require('./mealRoutes'));
 router.use('/eaters', require('./eaterRoutes'));
 router.use('/carpools', require('./carpoolRoutes'));
 router.use('/passengers', require('./passengerRoutes'))
-
+router.use('/memos', require('./memoRoutes'));
 
 router.use(authMiddleware.isAdmin);
 router.use('/admin', require('./adminRoutes'));
