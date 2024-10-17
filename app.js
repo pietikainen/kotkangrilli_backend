@@ -43,7 +43,8 @@ if (process.env.NODE_ENV === 'production') {
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: true }
+    rolling: true,
+    cookie: { secure: true, maxAge: 30 * 24 * 3600 * 1000 }
   }));
 } else {
   app.use(session({
