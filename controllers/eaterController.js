@@ -70,12 +70,21 @@ exports.getEaters = async (req, res) => {
 // DELETE: Delete eater from meal
 exports.deleteEater = async (req, res) => {
     const mealId = req.params.mealId;
-    const userId = req.user.id;
+    const eaterId = req.params.eaterId;
 
     try {
-        const deleteEater = await Eater.query().delete()
-            .where('mealId', mealId)
-            .andWhere('eaterId', userId);
+        const meal = await Meal.query()
+          .select('chefId')
+          .where('id', mealId).first();
+
+        if (eaterId !== req.user.id && meal.chefId !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                message: "Forbidden"
+            })
+        }
+
+        const deleteEater = await Eater.query().deleteById(eaterId)
 
         if (!deleteEater) {
             return res.status(404).json({
@@ -106,11 +115,11 @@ exports.setPaid = async (req, res) => {
     const paidLevel = req.params.paidLevel;
 
     try {
-        const chefId = await Meal.query()
+        const meal = await Meal.query()
           .select('chefId')
-          .where('id', mealId);
+          .where('id', mealId).first();
 
-        if (chefId !== req.user.id && paidLevel === 2) {
+        if (meal.chefId !== req.user.id && paidLevel === 2) {
             return res.status(403).json({
                 success: false,
                 message: "Forbidden"

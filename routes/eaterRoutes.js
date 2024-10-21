@@ -11,7 +11,7 @@ router.post('/:mealId', eaterController.postEater);
 router.get('/:mealId', eaterController.getEaters);
 
 // DELETE: Delete eater participation to meal
-router.delete('/:mealId', eaterController.deleteEater);
+router.delete('/:mealId/:eaterId', eaterController.deleteEater);
 
 // PATCH: Set eater as paid (default: 0, eater: 1, chefConfirmed: 2)
 router.patch('/:mealId/:eaterId/:paidLevel', eaterController.setPaid);
