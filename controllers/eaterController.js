@@ -102,26 +102,25 @@ exports.deleteEater = async (req, res) => {
 // (default: 0, eater: 1, chefConfirmed: 2)
 exports.setPaid = async (req, res) => {
     const mealId = req.params.mealId;
-    const userId = req.params.userId;
+    const eaterId = req.params.eaterId;
     const paidLevel = req.params.paidLevel;
 
-        try {
-        const setPaid = await Eater.query().update({
-            paid: paidLevel
-        })
-            .where('mealId', mealId)
-            .andWhere('eaterId', userId);
-
+    try {
         const chefId = await Meal.query()
-            .select('chefId')
-            .where('id', mealId);
+          .select('chefId')
+          .where('id', mealId);
 
-        if (chefId !== userId && paidLevel === 2) {
+        if (chefId !== req.user.id && paidLevel === 2) {
             return res.status(403).json({
                 success: false,
                 message: "Forbidden"
             })
         }
+
+        const setPaid = await Eater.query().patch({
+            paid: paidLevel
+        })
+            .findById(eaterId);
 
         if (!setPaid) {
             return res.status(404).json({
@@ -132,8 +131,8 @@ exports.setPaid = async (req, res) => {
             return res.status(200).json({
                 success: true,
                 data: {
-                    eaterId: userId,
-                    paidlevel: paidLevel
+                    eaterId: eaterId,
+                    paidLevel: paidLevel
                 }
             })
         }
