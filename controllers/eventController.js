@@ -23,7 +23,7 @@ exports.getAllEvents = async (req, res) => {
 
 exports.addEvent = async (req, res) => {
     console.log("received POST request to /api/events");
-    const { title, description, location, winnerGamesCount, startDate, endDate, votingOpen, active, lanMaster, paintCompoWinner, organizer } = req.body;
+    const { title, description, location, winnerGamesCount, startDate, endDate, votingState, active, lanMaster, paintCompoWinner, organizer } = req.body;
 
     try {
         const newEvent = await Event.query().insert({
@@ -33,7 +33,7 @@ exports.addEvent = async (req, res) => {
             winnerGamesCount,
             startDate,
             endDate,
-            votingOpen,
+            votingState,
             active,
             lanMaster,
             paintCompoWinner,
@@ -57,7 +57,7 @@ exports.addEvent = async (req, res) => {
 exports.updateEvent = async (req, res) => {
     console.log("received PUT request to /api/events/:eventId");
     const eventId = req.params.eventId;
-    const { title, description, location, startDate, endDate, winnerGamesCount, votingOpen, active, lanMaster, paintCompoWinner, organizer } = req.body;
+    const { title, description, location, startDate, endDate, winnerGamesCount, votingState, active, lanMaster, paintCompoWinner, organizer } = req.body;
 
     try {
         const updatedEvent = await Event.query().updateAndFetchById(eventId, {
@@ -67,7 +67,7 @@ exports.updateEvent = async (req, res) => {
             startDate,
             endDate,
             winnerGamesCount,
-            votingOpen,
+            votingState,
             active,
             lanMaster,
             paintCompoWinner,
