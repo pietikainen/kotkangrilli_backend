@@ -35,7 +35,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
   const { createClient } = require('redis');
-  const RedisStore = require('connect-redis').default;
+  const { RedisStore } = require("connect-redis");
   const redisClient = createClient()
   redisClient.connect().catch(console.error)
   app.use(session({
