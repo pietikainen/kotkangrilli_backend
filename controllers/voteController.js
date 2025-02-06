@@ -3,20 +3,44 @@
 const Vote = require('../models/Vote');
 const Event = require('../models/Event');
 const Participation = require('../models/Participation');
+const GameVote = require('../models/GameVote');
 
 
 // POST: Cast a vote
 exports.castVote = async (req, res) => {
     const eventId = req.params.eventId;
     const userId = req.user.id;
-    const gameId = req.params.gameId;
+    const externalApiId = req.body.externalApiId;
 
     try {
+        const event = await Event.query().findById(eventId);
 
-        const maxVotes = await Event.query().select('winnerGamesCount').where('id', eventId)
-        const existingVotes = await Vote.query().select('id').where('userId', userId)
+        if (!event) {
+            return res.status(404).json({
+                success: false,
+                message: "Event not found"
+            })
+        }
 
-        if (maxVotes[0].winnerGamesCount <= existingVotes.length) {
+        if (event.votingState !== 2 && event.votingState !== 3) {
+            return res.status(400).json({
+                success: false,
+                message: "Event is not open for voting"
+            })
+        }
+
+        const lastRound = await GameVote.query()
+          .where({ eventId })
+          .max("voting_round as maxRound")
+          .first();
+
+        const votingRound = lastRound.maxRound
+          ? parseInt(lastRound.maxRound) + 1
+          : 1;
+
+        const existingVotes = await Vote.query().select('id').where('userId', userId).andWhere('eventId', eventId).andWhere('voting_round', votingRound)
+
+        if (event.winnerGamesCount <= existingVotes.length) {
             return res.status(400).json({
                 success: false,
                 message: "Error: Max limit reached."
@@ -26,7 +50,7 @@ exports.castVote = async (req, res) => {
         const checkForExisting = await Vote.query()
             .select('id')
             .where('eventId', eventId)
-            .andWhere('gameId', gameId)
+            .andWhere('externalApiId', externalApiId)
             .andWhere('userId', userId);
 
         const isUserRegistered = await Participation.query()
@@ -48,15 +72,10 @@ exports.castVote = async (req, res) => {
             });
         }
 
-
-
-
-
-
         const newVote = await Vote.query().insert({
             eventId,
             userId,
-            gameId
+            externalApiId
         });
 
         if (!newVote) {
@@ -146,4 +165,33 @@ exports.deleteVote = async (req, res) => {
         });
     }
 
+}
+
+exports.getGameVotesByEventId = async (req, res) => {
+    const eventId = req.params.eventId;
+
+    try {
+        const gameVotes = await GameVote.query()
+            .where('eventId', eventId)
+            .orderBy('votes_amount', 'desc');
+
+        if (!gameVotes) {
+            return res.status(404).json({
+                success: false,
+                message: "Error: No game votes found"
+            })
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: gameVotes
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Error getting game votes',
+            error: error.message
+        })
+    }
 }

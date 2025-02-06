@@ -14,18 +14,20 @@ const isVoter = createAsyncCheck(async (req) => {
 });
 
 // POST route to add a new vote
-router.post('/:eventId/:gameId', voteController.castVote);
+router.post('/:eventId', voteController.castVote);
 
-// OBS! Not for use.
-// GET: Calculate votes and update winners with amount of param (int) (ADMIN ONLY)
-router.get('/calculate/:limit', isAdmin, adminController.calculateVotes);
-router.get('/count/:eventId', adminController.countVotesByEvent);
+// POST: Calculate votes for the current voting round of a given event (ADMIN ONLY)
+router.post('/:eventId/count', isAdmin, adminController.calculateVotes);
 
 // GET route to get all votes per Event ID by req.user.id
 router.get('/:eventId/', voteController.getVotesByUser);
-// GET route to get all votes by eventID
 
-// GET route to get all votes by gameID
+// GET route to get gamevotes by eventID
+router.get('/:eventId/results', voteController.getGameVotesByEventId);
+
+// GET route to get all votes by externalApiId
+
+// GET route to get all votes by externalApiId
 
 // PATCH route to update a vote
 
