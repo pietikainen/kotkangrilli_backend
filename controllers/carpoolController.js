@@ -3,7 +3,7 @@
 const Carpool = require('../models/Carpool');
 
 exports.postCarpool = async (req, res) => {
-    const { eventId, seats, departureCity, departureTime } = req.body;
+    const { eventId, seats, departureCity, departureTime, description } = req.body;
     const driverId = req.user.id;
 
     try {
@@ -12,7 +12,8 @@ exports.postCarpool = async (req, res) => {
             driverId,
             seats,
             departureCity,
-            departureTime
+            departureTime,
+            description
         });
 
         res.status(201).json({
@@ -54,7 +55,7 @@ exports.getCarpoolsWithEventId = async (req, res) => {
 
     try {
         const carpools = await Carpool.query()
-            .select('id', 'eventId', 'driverId', 'seats', 'departureCity', 'departureTime')
+            .select('id', 'eventId', 'driverId', 'seats', 'departureCity', 'departureTime', 'description')
             .where('eventId', eventId)
 
         return res.status(200).json({
@@ -73,7 +74,7 @@ exports.getCarpoolsWithEventId = async (req, res) => {
 exports.getCarpoolsWithUserId = async (req, res) => {
     try {
         const carpools = await Carpool.query()
-            .select('id', 'eventId', 'driverId', 'seats', 'departureCity', 'departureTime')
+            .select('id', 'eventId', 'driverId', 'seats', 'departureCity', 'departureTime', 'description')
             .where('driverId', req.user.id)
 
         if (!carpools) {
@@ -123,7 +124,7 @@ exports.deleteCarpool = async (req, res) => {
 }
 
 exports.updateCarpool = async (req, res) => {
-    const { eventId, seats, departureCity, departureTime } = req.body;
+    const { eventId, seats, departureCity, departureTime, description } = req.body;
     const driverId = req.user.id;
     const carpoolId = req.params.carpoolId;
 
@@ -135,6 +136,7 @@ exports.updateCarpool = async (req, res) => {
                 seats,
                 departureCity,
                 departureTime,
+                description
             })
             .where('id', carpoolId)
 

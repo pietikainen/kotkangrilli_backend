@@ -163,10 +163,61 @@ const updateParticipationToEvent = async (req, res) => {
     }
 };
 
+// PATCH: Set participation paid for participant
+// (default: 0, participant: 1, organizerConfirmed: 2)
+const setPaid = async (req, res) => {
+    const id = req.params.id;
+    const paidLevel = req.params.paidLevel;
+
+    try {
+        const participation = await Participation.query().findById(id);
+
+        if (!participation) {
+            return res.status(404).json({
+                success: false,
+                message: "Participation not found"
+            })
+        }
+
+        const event = await Event.query().select('organizer')
+          .where('id', participation.eventId).first();
+
+        if (participation.userId !== req.user.id && event.organizer !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                message: "Forbidden"
+            })
+        }
+
+        if (event.organizer !== req.user.id && (paidLevel === 2 || participation.paid === 2)) {
+            return res.status(403).json({
+                success: false,
+                message: "Forbidden"
+            })
+        }
+
+        const updateParticipation = await Participation.query()
+          .patchAndFetchById(id, { paid: paidLevel });
+
+        return res.status(200).json({
+            success: true,
+            data: updateParticipation
+        })
+    } catch (error) {
+        console.error("Error updating participation", error.message);
+        res.status(500).json({
+            success: false,
+            message: "Error updating participation",
+            error: error.message
+        })
+    }
+}
+
 module.exports = {
     addParticipationToEvent,
     removeParticipationFromEvent,
     getParticipationToEvent,
     updateParticipationToEvent,
-    getUserParticipations
+    getUserParticipations,
+    setPaid
 };

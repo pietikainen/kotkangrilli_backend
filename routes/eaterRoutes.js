@@ -5,16 +5,16 @@ const express = require('express');
 const router = express.Router();
 
 // POST: Eater to participate to meal
-router.post('/:mealId', eaterController.postEater);
+router.post('/meals/:mealId', eaterController.postEater);
 
 // GET: Eaters per meal ID
-router.get('/:mealId', eaterController.getEaters);
+router.get('/meals/:mealId', eaterController.getEaters);
 
 // DELETE: Delete eater participation to meal
-router.delete('/:mealId/:eaterId', eaterController.deleteEater);
+router.delete('/:id', eaterController.deleteEater);
 
 // PATCH: Set eater as paid (default: 0, eater: 1, chefConfirmed: 2)
-router.patch('/:mealId/:eaterId/:paidLevel', eaterController.setPaid);
+router.patch('/set-paid/:id', eaterController.setPaid);
 
 
 

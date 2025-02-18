@@ -18,6 +18,7 @@ router.delete('/:id', or(isParticipant, isAdmin), participationController.remove
 router.get('/:eventId', participationController.getParticipationToEvent);
 router.put('/:id', or(isParticipant, isAdmin), participationController.updateParticipationToEvent);
 router.get('/user/:userId', isSelf(req => Number(req.params.userId)), participationController.getUserParticipations)
+router.patch('/set-paid/:id', participationController.setPaid);
 
 // mieti joskus tätä, mistä sais kaikki :3
 // router.get('/participations', participationController.getAllParticipations);

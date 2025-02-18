@@ -69,22 +69,30 @@ exports.getEaters = async (req, res) => {
 
 // DELETE: Delete eater from meal
 exports.deleteEater = async (req, res) => {
-    const mealId = req.params.mealId;
-    const eaterId = req.params.eaterId;
+    const { id } = req.params;
 
     try {
+        const eater = await Eater.query().findById(id);
+
+        if (!eater) {
+            return res.status(404).json({
+                success: false,
+                message: "Eater not found"
+            })
+        }
+
         const meal = await Meal.query()
           .select('chefId')
-          .where('id', mealId).first();
+          .where('id', eater.mealId).first();
 
-        if (eaterId !== req.user.id && meal.chefId !== req.user.id) {
+        if (eater.eaterId !== req.user.id && meal.chefId !== req.user.id) {
             return res.status(403).json({
                 success: false,
                 message: "Forbidden"
             })
         }
 
-        const deleteEater = await Eater.query().deleteById(eaterId)
+        const deleteEater = await Eater.query().deleteById(id)
 
         if (!deleteEater) {
             return res.status(404).json({
@@ -98,11 +106,11 @@ exports.deleteEater = async (req, res) => {
             })
         }
     } catch (error) {
-        console.log("error response data: ", error.response ? error.response.data : null)
+        console.error(error.message);
         return res.status(500).json({
             success: false,
             message: 'Error deleting Eater',
-            error: error.response ? error.response.data : null
+            error: error.message
         })
     }
 }
@@ -110,41 +118,44 @@ exports.deleteEater = async (req, res) => {
 // PATCH: Set meal paid for eater
 // (default: 0, eater: 1, chefConfirmed: 2)
 exports.setPaid = async (req, res) => {
-    const mealId = req.params.mealId;
-    const eaterId = req.params.eaterId;
-    const paidLevel = req.params.paidLevel;
+    const { id } = req.params;
+    const { paidLevel } = req.body;
 
     try {
+        const eater = await Eater.query().findById(id);
+
+        if (!eater) {
+            return res.status(404).json({
+                success: false,
+                message: "Eater not found"
+            })
+        }
+
         const meal = await Meal.query()
           .select('chefId')
-          .where('id', mealId).first();
+          .where('id', eater.mealId).first();
 
-        if (meal.chefId !== req.user.id && paidLevel === 2) {
+        if (eater.eaterId !== req.user.id && meal.chefId !== req.user.id) {
             return res.status(403).json({
                 success: false,
                 message: "Forbidden"
             })
         }
 
-        const setPaid = await Eater.query().patch({
-            paid: paidLevel
-        })
-            .findById(eaterId);
-
-        if (!setPaid) {
-            return res.status(404).json({
+        if (meal.chefId !== req.user.id && (paidLevel === 2 || eater.paid === 2)) {
+            return res.status(403).json({
                 success: false,
-                message: "eater not found"
-            })
-        } else {
-            return res.status(200).json({
-                success: true,
-                data: {
-                    eaterId: eaterId,
-                    paidLevel: paidLevel
-                }
+                message: "Forbidden"
             })
         }
+
+        const updateEater = await Eater.query()
+          .patchAndFetchById(id, { paid: paidLevel });
+
+        return res.status(200).json({
+            success: true,
+            data: updateEater
+        })
     } catch (error) {
             console.log("error updating Eater", error.message);
             res.status(500).json({
