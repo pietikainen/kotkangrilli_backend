@@ -149,8 +149,15 @@ exports.deleteVote = async (req, res) => {
 
     try {
         const vote = await Vote.query()
-            .select('id', 'userId')
-            .where('id', voteId)
+            .select('eventId', 'voting_round')
+            .where('id', voteId).first();
+
+        if (!vote) {
+            return res.status(404).json({
+                success: false,
+                message: "Vote not found"
+            })
+        }
 
         const lastRound = await GameVote.query()
           .where('eventId', vote.eventId)
