@@ -84,9 +84,7 @@ exports.calculateVotes = async (req, res) => {
       return res.status(404).json({ error: "Event not found" });
     }
 
-    const actualWinnerLimit = winnerGamesCount || event.winnerGamesCount;
-
-    if (!actualWinnerLimit) {
+    if (!winnerGamesCount && !event.winnerGamesCount) {
       return res.status(400).json({
         error: "winnerGamesCount not specified or found in event.",
       });
@@ -105,6 +103,8 @@ exports.calculateVotes = async (req, res) => {
       .countDistinct('externalApiId as count')
       .where({ eventId, finalized: true })
       .first();
+
+    const actualWinnerLimit = (winnerGamesCount || event.winnerGamesCount) - previousWinnersCount.count;
 
     if (
       previousWinnersCount.count === actualWinnerLimit
@@ -130,10 +130,65 @@ exports.calculateVotes = async (req, res) => {
       return res.status(200).json({ message: "No votes for this round." });
     }
 
-    const gamesToProcess = await Vote.query()
-      .select("externalApiId", Vote.raw("COUNT(*) as vote_count"))
-      .where({ eventId, voting_round: votingRound })
-      .groupBy("externalApiId");
+    let gamesToProcessQuery;
+
+    if (votingRound === 1) {
+      gamesToProcessQuery = Game.query()
+        .alias("g")
+        .select(
+          "g.externalApiId",
+          "g.title",
+          "g.image",
+          "g.price",
+          "g.link",
+          "g.store",
+          "g.players",
+          "g.isLan",
+          "g.submittedBy",
+          "g.description"
+        )
+        .where({ eventId })
+        .leftJoin(
+          Vote.query()
+            .select("externalApiId")
+            .count("* as vote_count")
+            .where({ eventId, voting_round: votingRound })
+            .groupBy("externalApiId")
+            .as("vote_counts"),
+          "g.externalApiId",
+          "vote_counts.externalApiId"
+        )
+        .select(Vote.raw("COALESCE(vote_counts.vote_count, 0) as vote_count"));
+    } else {
+      gamesToProcessQuery = GameVote.query()
+        .alias("gv")
+        .select(
+          "gv.externalApiId",
+          "gv.title",
+          "gv.image",
+          "gv.price",
+          "gv.link",
+          "gv.store",
+          "gv.players",
+          "gv.isLan",
+          "gv.submittedBy",
+          "gv.description"
+        )
+        .where({ "gv.eventId": eventId, "gv.voting_round": votingRound - 1, "gv.finalized": false, "gv.is_winner": true })
+        .leftJoin(
+          Vote.query()
+            .select("externalApiId")
+            .count("* as vote_count")
+            .where({ eventId, voting_round: votingRound })
+            .groupBy("externalApiId")
+            .as("vote_counts"),
+          "gv.externalApiId",
+          "vote_counts.externalApiId"
+        )
+        .select(Vote.raw("COALESCE(vote_counts.vote_count, 0) as vote_count"));
+    }
+
+    const gamesToProcess = await gamesToProcessQuery;
 
     await Promise.all(
       gamesToProcess.map((game) => {
@@ -223,12 +278,14 @@ exports.calculateVotes = async (req, res) => {
     }
 
     await Promise.all(
-      winners.map((winner) => {
-        const isFinalized = finalizedWinners.some(fw => fw.id === winner.id);
+      winners.map((game) => {
+        const isFinalized = finalizedWinners.some((fw) => fw.id === game.id);
+        const isWinner = isFinalized || advancingWinners.some((aw) => aw.id === game.id);
+
         return GameVote.query()
-          .update({ is_winner: true, finalized: isFinalized })
-          .where("id", winner.id);
-      }),
+          .update({ is_winner: isWinner, finalized: isFinalized })
+          .where("id", game.id);
+      })
     );
 
     return res.status(200).json({
