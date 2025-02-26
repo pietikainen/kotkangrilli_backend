@@ -141,7 +141,6 @@ exports.getVotesByUser = async (req, res) =>  {
 
 // DELETE: Delete a vote by voteId
 exports.deleteVote = async (req, res) => {
-
     const voteId = req.params.voteId;
     const userId = req.user.id;
 
@@ -149,10 +148,25 @@ exports.deleteVote = async (req, res) => {
     console.log("userId: ", userId);
 
     try {
-        // Get the vote
         const vote = await Vote.query()
             .select('id', 'userId')
             .where('id', voteId)
+
+        const lastRound = await GameVote.query()
+          .where('eventId', vote.eventId)
+          .max("voting_round as maxRound")
+          .first();
+
+        const votingRound = lastRound.maxRound
+          ? parseInt(lastRound.maxRound) + 1
+          : 1;
+
+        if (vote.voting_round !== votingRound) {
+            return res.status(400).json({
+                success: false,
+                message: "Removing votes from previous rounds is not allowed"
+            })
+        }
 
         const deleteVote = await Vote.query().deleteById(voteId);
         if (deleteVote) {
