@@ -40,7 +40,9 @@ exports.castVote = async (req, res) => {
 
         const existingVotes = await Vote.query().select('id').where('userId', userId).andWhere('eventId', eventId).andWhere('voting_round', votingRound)
 
-        if (event.winnerGamesCount <= existingVotes.length) {
+        const finalizedGames = await GameVote.query().select('id').where('eventId', eventId).andWhere('finalized', true);
+
+        if (event.winnerGamesCount - finalizedGames.length <= existingVotes.length) {
             return res.status(400).json({
                 success: false,
                 message: "Error: Max limit reached."
@@ -51,7 +53,8 @@ exports.castVote = async (req, res) => {
             .select('id')
             .where('eventId', eventId)
             .andWhere('externalApiId', externalApiId)
-            .andWhere('userId', userId);
+            .andWhere('userId', userId)
+            .andWhere('voting_round', votingRound);
 
         const isUserRegistered = await Participation.query()
             .select('id')
@@ -75,7 +78,8 @@ exports.castVote = async (req, res) => {
         const newVote = await Vote.query().insert({
             eventId,
             userId,
-            externalApiId
+            externalApiId,
+            voting_round: votingRound
         });
 
         if (!newVote) {
