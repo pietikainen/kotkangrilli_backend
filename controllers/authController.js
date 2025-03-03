@@ -13,17 +13,17 @@ passport.use(new DiscordStrategy({
   scope: ['identify', 'email', 'guilds.members.read']
 }, async (accessToken, refreshToken, profile, done) => {
   try {
-    let nickname = profile.username;
+    let nickname = profile.global_name;
 
     // fetch guild membership data for the nickname
     const guildMemberUrl = `https://discord.com/api/v10/users/@me/guilds/${TARGET_GUILD_ID}/member`;
     const headers = { Authorization: `Bearer ${accessToken}` };
 
     try {
-    const guildMemberResponse = await axios.get(guildMemberUrl, { headers });
-    if (guildMemberResponse.data && guildMemberResponse.data.nick) {
-      nickname = guildMemberResponse.data.nick;
-    }
+      const guildMemberResponse = await axios.get(guildMemberUrl, { headers });
+      if (guildMemberResponse.data && guildMemberResponse.data.nick) {
+        nickname = guildMemberResponse.data.nick;
+      }
     } catch (error) {
       console.warn(`Failed to fetch guild member data:`, error.response?.data || error.message);
       console.log('error: ', error);
