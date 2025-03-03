@@ -13,8 +13,6 @@ passport.use(new DiscordStrategy({
   scope: ['identify', 'email', 'guilds.members.read']
 }, async (accessToken, refreshToken, profile, done) => {
   try {
-    console.log('Access Token: ', accessToken);
-    console.log('Refresh Token: ', refreshToken);
     let nickname = profile.username;
 
     // fetch guild membership data for the nickname
@@ -25,7 +23,6 @@ passport.use(new DiscordStrategy({
     const guildMemberResponse = await axios.get(guildMemberUrl, { headers });
     if (guildMemberResponse.data && guildMemberResponse.data.nick) {
       nickname = guildMemberResponse.data.nick;
-      console.log(`Fetched nickname for ${profile.username}: ${nickname}`);
     }
     } catch (error) {
       console.warn(`Failed to fetch guild member data:`, error.response?.data || error.message);
