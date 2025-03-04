@@ -9,6 +9,17 @@ exports.postEater = async (req, res) => {
     const eaterId = req.user.id;
 
     try {
+        const meal = await Meal.query()
+            .select('chefId', 'signupEnd')
+            .where('id', mealId).first()
+
+        if (meal.chefId !== req.user.id && meal.signupEnd <= new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Meal signup has ended'
+            });
+        }
+
         const addEater = await Eater.query()
             .insert({
                 eaterId,
@@ -82,8 +93,15 @@ exports.deleteEater = async (req, res) => {
         }
 
         const meal = await Meal.query()
-          .select('chefId')
+          .select('chefId', 'signupEnd')
           .where('id', eater.mealId).first();
+
+        if (meal.chefId !== req.user.id && meal.signupEnd <= new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Meal signup has ended'
+            });
+        }
 
         if (eater.eaterId !== req.user.id && meal.chefId !== req.user.id) {
             return res.status(403).json({

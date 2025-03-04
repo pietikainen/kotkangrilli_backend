@@ -4,7 +4,7 @@ const Meal = require('../models/Meal');
 
 // POST: Add meal for event
 exports.addMeal = async (req, res) => {
-    const { eventId, name, description, price, mobilepay, banktransfer } = req.body;
+    const { eventId, name, description, price, mobilepay, banktransfer, signupEnd, days } = req.body;
     const chefId = req.user.id;
 
     try {
@@ -15,7 +15,9 @@ exports.addMeal = async (req, res) => {
             description,
             price,
             mobilepay,
-            banktransfer
+            banktransfer,
+            signupEnd,
+            days
         });
 
         res.status(201).json({
@@ -61,7 +63,7 @@ exports.getMealsOnEvent = async (req, res) => {
 
 // PUT: Update the meal data
 exports.updateMeal = async (req, res) => {
-    const { eventId, name, description, price, mobilepay, banktransfer } = req.body;
+    const { eventId, name, description, price, mobilepay, banktransfer, signupEnd, days } = req.body;
 
     const mealId = req.params.mealId;
     const userId = req.user.id;
@@ -84,7 +86,9 @@ exports.updateMeal = async (req, res) => {
             description,
             price,
             mobilepay,
-            banktransfer
+            banktransfer,
+            signupEnd,
+            days
         });
 
         if(!updateMeal) {
