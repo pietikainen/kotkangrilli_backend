@@ -167,7 +167,7 @@ const updateParticipationToEvent = async (req, res) => {
 // (default: 0, participant: 1, organizerConfirmed: 2)
 const setPaid = async (req, res) => {
     const id = req.params.id;
-    const paidLevel = req.params.paidLevel;
+    const paidLevel = req.body.paidLevel;
 
     try {
         const participation = await Participation.query().findById(id);
