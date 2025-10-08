@@ -102,7 +102,7 @@ exports.getGameFromIgdb = async (req, res) => {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'text/plain'
       },
-      data: `fields name, cover; limit 5; search "${param}"; where category = 0;`
+      data: `fields name, cover; search "${param}"; where game_type = 0 & version_parent = null; limit 5; `
     });
 
     if (response.data.length === 0) {
@@ -246,7 +246,7 @@ exports.getGameStoreUrl = async (req, res) => {
       data: `fields *; where game = ${id};`
     });
 
-    // find the store url from json data where category = 13 or 17 or 16
+    // find the store url from json data where type = 13 or 17 or 16
     // 13 = steam, 17 = gog, 16 = epic
 
     if (!response) {
@@ -259,7 +259,7 @@ exports.getGameStoreUrl = async (req, res) => {
     let storeUrl = '';
 
     for (let i = 0; i < response.data.length; i++) {
-      if (response.data[i].category === 13 || response.data[i].category === 17 || response.data[i].category === 16) {
+      if (response.data[i].type === 13 || response.data[i].type === 17 || response.data[i].type === 16) {
         storeUrl = response.data[i].url;
         break;
       }
@@ -285,11 +285,11 @@ exports.getGameStoreUrl = async (req, res) => {
       });
     }
 
-      // find the store url from json data where category = 1 or 5 or 26
+      // find the store url from json data where external_game_source = 1 or 5 or 26
       // 1 = steam, 5 = gog, 26 = epic
 
       for (let i = 0; i < response.data.length; i++) {
-        if (response.data[i].category === 1 || response.data[i].category === 5 || response.data[i].category === 26) {
+        if (response.data[i].external_game_source === 1 || response.data[i].external_game_source === 5 || response.data[i].external_game_source === 26) {
           storeUrl = response.data[i].url;
           break;
         }
