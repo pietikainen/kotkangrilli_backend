@@ -64,7 +64,7 @@ exports.getEaters = async (req, res) => {
 
     try {
         const eaters = await Eater.query()
-            .where('mealId', mealId)
+            .where('mealId', mealId).orderBy('id')
 
         if (!eaters) {
             return res.status(404).json({
