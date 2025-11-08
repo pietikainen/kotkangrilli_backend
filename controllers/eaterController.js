@@ -7,23 +7,32 @@ const Meal = require('../models/Meal');
 exports.postEater = async (req, res) => {
     const mealId = req.params.mealId;
     const eaterId = req.user.id;
+    const { comment } = req.body;
 
     try {
         const meal = await Meal.query()
-            .select('chefId', 'signupEnd')
+            .select('chefId', 'signupEnd', 'requiresComment')
             .where('id', mealId).first()
 
-        if (meal.chefId !== req.user.id && meal.signupEnd <= new Date()) {
+        if (meal.chefId !== req.user.id && meal.signupEnd && meal.signupEnd <= new Date()) {
             return res.status(400).json({
                 success: false,
                 message: 'Meal signup has ended'
             });
         }
 
+        if (meal.requiresComment && (!comment || String(comment).trim().length === 0)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Comment is required for this meal'
+            });
+        }
+
         const addEater = await Eater.query()
             .insert({
                 eaterId,
-                mealId
+                mealId,
+                comment: comment ?? null
             });
 
         if (!addEater) {
@@ -182,4 +191,41 @@ exports.setPaid = async (req, res) => {
                 error: error.message
             })
         }
+}
+
+// PATCH: Update eater comment (allowed until signupEnd for eater; chef may edit anytime)
+exports.setComment = async (req, res) => {
+    const { id } = req.params;
+    const { comment } = req.body;
+
+    try {
+        const eater = await Eater.query().findById(id);
+        if (!eater) {
+            return res.status(404).json({ success: false, message: 'Eater not found' });
+        }
+
+        const meal = await Meal.query()
+          .select('chefId', 'signupEnd', 'requiresComment')
+          .where('id', eater.mealId).first();
+
+        const isChef = meal.chefId === req.user.id;
+        const isSelf = eater.eaterId === req.user.id;
+        if (!isChef && !isSelf) {
+            return res.status(403).json({ success: false, message: 'Forbidden' });
+        }
+
+        if (!isChef && meal.signupEnd && meal.signupEnd <= new Date()) {
+            return res.status(400).json({ success: false, message: 'Meal signup has ended' });
+        }
+
+        if (meal.requiresComment && (!comment || String(comment).trim().length === 0)) {
+            return res.status(400).json({ success: false, message: 'Comment is required for this meal' });
+        }
+
+        const updated = await Eater.query().patchAndFetchById(id, { comment: comment ?? null });
+        return res.status(200).json({ success: true, data: updated });
+    } catch (error) {
+        console.log('error updating eater comment', error.message);
+        return res.status(500).json({ success: false, message: 'Error updating eater comment', error: error.message });
+    }
 }
