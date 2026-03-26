@@ -6,6 +6,104 @@ const Game = require("../models/Game");
 const Vote = require("../models/Vote");
 const GameVote = require("../models/GameVote");
 
+function normalizeVoteGroup(voteGroup) {
+  if (typeof voteGroup !== "string") {
+    return null;
+  }
+
+  const normalized = voteGroup.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function getCandidateKey(game, aggregateByVoteGroup) {
+  const voteGroup = normalizeVoteGroup(game.voteGroup);
+
+  if (aggregateByVoteGroup && voteGroup) {
+    return `group:${voteGroup}`;
+  }
+
+  return `game:${game.externalApiId}`;
+}
+
+function buildCandidates(games, voteCountsByExternalApiId, aggregateByVoteGroup) {
+  const candidates = new Map();
+
+  for (const game of games) {
+    const candidateKey = getCandidateKey(game, aggregateByVoteGroup);
+    const voteGroup = normalizeVoteGroup(game.voteGroup);
+    const voteCount = voteCountsByExternalApiId.get(game.externalApiId) || 0;
+
+    if (!candidates.has(candidateKey)) {
+      candidates.set(candidateKey, {
+        key: candidateKey,
+        title: aggregateByVoteGroup && voteGroup ? voteGroup : game.title,
+        voteCount: 0,
+        voteGroup,
+        members: [],
+        requiresDecider: aggregateByVoteGroup && Boolean(voteGroup),
+      });
+    }
+
+    const candidate = candidates.get(candidateKey);
+    candidate.voteCount += voteCount;
+    candidate.members.push(game);
+  }
+
+  return [...candidates.values()].sort((a, b) => b.voteCount - a.voteCount);
+}
+
+function getCurrentGameVoteRows(rows) {
+  const latestRowsByGame = new Map();
+
+  for (const row of rows) {
+    const existingRow = latestRowsByGame.get(row.externalApiId);
+
+    if (!existingRow || row.voting_round > existingRow.voting_round) {
+      latestRowsByGame.set(row.externalApiId, row);
+    }
+  }
+
+  return [...latestRowsByGame.values()];
+}
+
+function determineVotingPhase(currentRows) {
+  const unresolvedRows = currentRows.filter(
+    (row) => row.is_winner && !row.finalized,
+  );
+
+  if (unresolvedRows.some((row) => row.pendingReason === "cutoff_tie")) {
+    return "normal";
+  }
+
+  if (
+    unresolvedRows.some((row) => row.pendingReason === "group_member_decider")
+  ) {
+    return "group_decider";
+  }
+
+  return "normal";
+}
+
+function countReservedGroupSlots(currentRows) {
+  return new Set(
+    currentRows
+      .filter((row) => row.is_winner && !row.finalized)
+      .filter((row) => row.pendingReason === "group_member_decider")
+      .map((row) => normalizeVoteGroup(row.voteGroup))
+      .filter(Boolean),
+  ).size;
+}
+
+function collectAdvancingRows(rows, phase) {
+  return rows
+    .filter((row) => row.is_winner && !row.finalized)
+    .filter((row) =>
+      phase === "normal"
+        ? row.pendingReason === "cutoff_tie"
+        : row.pendingReason === "group_member_decider",
+    );
+}
+
 // Update user level
 exports.updateUserLevel = async (req, res) => {
   console.log("received PATCH request to /api/admin/user/:userId");
@@ -99,16 +197,26 @@ exports.calculateVotes = async (req, res) => {
       ? parseInt(lastRound.maxRound) + 1
       : 1;
 
+    const previousRoundRows = lastRound.maxRound
+      ? await GameVote.query().where({ eventId })
+      : [];
+
+    const currentRows = getCurrentGameVoteRows(previousRoundRows);
+    const phase = determineVotingPhase(currentRows);
+
     const previousWinnersCount = await GameVote.query()
       .countDistinct('externalApiId as count')
       .where({ eventId, finalized: true })
       .first();
 
-    const actualWinnerLimit = (winnerGamesCount || event.winnerGamesCount) - previousWinnersCount.count;
+    const finalizedWinnerCount = Number(previousWinnersCount.count || 0);
+    const reservedGroupSlotCount = countReservedGroupSlots(currentRows);
+    const actualWinnerLimit =
+      (winnerGamesCount || event.winnerGamesCount) -
+      finalizedWinnerCount -
+      reservedGroupSlotCount;
 
-    if (
-      previousWinnersCount.count === actualWinnerLimit
-    ) {
+    if (actualWinnerLimit <= 0 && phase !== "group_decider") {
       return res
         .status(200)
         .json({
@@ -126,172 +234,234 @@ exports.calculateVotes = async (req, res) => {
       .count("* as count")
       .first();
 
-    if (votesInRound.count === "0") {
+    if (Number(votesInRound.count || 0) === 0) {
       return res.status(200).json({ message: "No votes for this round." });
     }
 
-    let gamesToProcessQuery;
+    const voteCounts = await Vote.query()
+      .select("externalApiId")
+      .count("* as vote_count")
+      .where({ eventId, voting_round: votingRound })
+      .groupBy("externalApiId");
 
-    if (votingRound === 1) {
-      gamesToProcessQuery = Game.query()
-        .alias("g")
-        .select(
-          "g.externalApiId",
-          "g.title",
-          "g.image",
-          "g.price",
-          "g.link",
-          "g.store",
-          "g.players",
-          "g.isLan",
-          "g.submittedBy",
-          "g.description"
-        )
-        .where({ eventId })
-        .leftJoin(
-          Vote.query()
-            .select("externalApiId")
-            .count("* as vote_count")
-            .where({ eventId, voting_round: votingRound })
-            .groupBy("externalApiId")
-            .as("vote_counts"),
-          "g.externalApiId",
-          "vote_counts.externalApiId"
-        )
-        .select(Vote.raw("COALESCE(vote_counts.vote_count, 0) as vote_count"));
-    } else {
-      gamesToProcessQuery = GameVote.query()
-        .alias("gv")
-        .select(
-          "gv.externalApiId",
-          "gv.title",
-          "gv.image",
-          "gv.price",
-          "gv.link",
-          "gv.store",
-          "gv.players",
-          "gv.isLan",
-          "gv.submittedBy",
-          "gv.description"
-        )
-        .where({ "gv.eventId": eventId, "gv.voting_round": votingRound - 1, "gv.finalized": false, "gv.is_winner": true })
-        .leftJoin(
-          Vote.query()
-            .select("externalApiId")
-            .count("* as vote_count")
-            .where({ eventId, voting_round: votingRound })
-            .groupBy("externalApiId")
-            .as("vote_counts"),
-          "gv.externalApiId",
-          "vote_counts.externalApiId"
-        )
-        .select(Vote.raw("COALESCE(vote_counts.vote_count, 0) as vote_count"));
+    const voteCountsByExternalApiId = new Map(
+      voteCounts.map((voteCount) => [
+        voteCount.externalApiId,
+        Number(voteCount.vote_count || 0),
+      ]),
+    );
+
+    const aggregateByVoteGroup = phase === "normal";
+
+    const gamesToProcess =
+      votingRound === 1
+        ? await Game.query().select(
+            "externalApiId",
+            "title",
+            "image",
+            "price",
+            "link",
+            "store",
+            "players",
+            "isLan",
+            "submittedBy",
+            "description",
+            "voteGroup",
+          )
+        : collectAdvancingRows(currentRows, phase)
+            .map((row) => ({
+              externalApiId: row.externalApiId,
+              title: row.title,
+              image: row.image,
+              price: row.price,
+              link: row.link,
+              store: row.store,
+              players: row.players,
+              isLan: row.isLan,
+              submittedBy: row.submittedBy,
+              description: row.description,
+              voteGroup: row.voteGroup,
+            }));
+
+    const candidates = buildCandidates(
+      gamesToProcess,
+      voteCountsByExternalApiId,
+      aggregateByVoteGroup,
+    );
+
+    if (candidates.length === 0) {
+      return res.status(200).json({ message: "No winners to process." });
     }
 
-    const gamesToProcess = await gamesToProcessQuery;
+    const candidateByKey = new Map(
+      candidates.map((candidate) => [candidate.key, candidate]),
+    );
 
     await Promise.all(
       gamesToProcess.map((game) => {
-        let gameInfoPromise;
-        if (votingRound === 1) {
-          // In round 1, we pull game details from the Game table.
-          gameInfoPromise = Game.query().where('externalApiId', game.externalApiId).first();
-        } else {
-          // For subsequent rounds, copy the game information from the previous round.
-          gameInfoPromise = GameVote.query().findOne({
-            externalApiId: game.externalApiId,
-            eventId,
-            voting_round: votingRound - 1,
-          });
-        }
+        const candidate = candidateByKey.get(
+          getCandidateKey(game, aggregateByVoteGroup),
+        );
 
-        return gameInfoPromise.then((gameInfo) => {
-          if (!gameInfo) {
-            throw new Error(`Game info for externalApiId ${game.externalApiId} not found from previous round`);
-          }
-          return GameVote.query().insert({
-            eventId,
-            voting_round: votingRound,
-            externalApiId: gameInfo.externalApiId,
-            title: gameInfo.title,
-            image: gameInfo.image,
-            price: gameInfo.price,
-            link: gameInfo.link,
-            store: gameInfo.store,
-            players: gameInfo.players,
-            isLan: gameInfo.isLan,
-            submittedBy: gameInfo.submittedBy,
-            description: gameInfo.description,
-            votes_amount: game.vote_count,
-            is_winner: false,
-            finalized: false, // default status for this round
-          });
+        return GameVote.query().insert({
+          eventId,
+          voting_round: votingRound,
+          externalApiId: game.externalApiId,
+          title: game.title,
+          image: game.image,
+          price: game.price,
+          link: game.link,
+          store: game.store,
+          players: game.players,
+          isLan: game.isLan,
+          submittedBy: game.submittedBy,
+          description: game.description,
+          voteGroup: normalizeVoteGroup(game.voteGroup),
+          votes_amount: candidate ? candidate.voteCount : 0,
+          is_winner: false,
+          finalized: false,
         });
-      })
+      }),
     );
 
-    // Retrieve winners for this voting round, sorted by vote count descending
-    const winners = await GameVote.query()
+    let finalizedCandidateKeys = new Set();
+    let normalTieCandidateKeys = new Set();
+    let groupDeciderCandidateKeys = new Set();
+
+    if (phase === "normal") {
+      let clearCandidates;
+      let tieCandidates = [];
+
+      if (candidates.length <= actualWinnerLimit) {
+        clearCandidates = candidates;
+      } else {
+        const cutoffIndex = actualWinnerLimit - 1;
+        const cutoffVote = candidates[cutoffIndex].voteCount;
+
+        if (
+          candidates[cutoffIndex + 1] &&
+          candidates[cutoffIndex + 1].voteCount === cutoffVote
+        ) {
+          let tieStart = cutoffIndex;
+          while (
+            tieStart > 0 &&
+            candidates[tieStart - 1].voteCount === cutoffVote
+          ) {
+            tieStart -= 1;
+          }
+
+          let tieEnd = cutoffIndex;
+          while (
+            tieEnd < candidates.length - 1 &&
+            candidates[tieEnd + 1].voteCount === cutoffVote
+          ) {
+            tieEnd += 1;
+          }
+
+          clearCandidates = candidates.slice(0, tieStart);
+          tieCandidates = candidates.slice(tieStart, tieEnd + 1);
+        } else {
+          clearCandidates = candidates.slice(0, actualWinnerLimit);
+        }
+      }
+
+      finalizedCandidateKeys = new Set(
+        clearCandidates
+          .filter((candidate) => !candidate.requiresDecider)
+          .map((candidate) => candidate.key),
+      );
+
+      normalTieCandidateKeys = new Set(
+        tieCandidates.map((candidate) => candidate.key),
+      );
+
+      groupDeciderCandidateKeys = new Set(
+        clearCandidates
+          .filter((candidate) => candidate.requiresDecider)
+          .map((candidate) => candidate.key),
+      );
+    } else {
+      const groupedCandidates = new Map();
+
+      for (const candidate of candidates) {
+        const voteGroup = normalizeVoteGroup(candidate.voteGroup);
+        if (!voteGroup) {
+          finalizedCandidateKeys.add(candidate.key);
+          continue;
+        }
+
+        if (!groupedCandidates.has(voteGroup)) {
+          groupedCandidates.set(voteGroup, []);
+        }
+        groupedCandidates.get(voteGroup).push(candidate);
+      }
+
+      for (const groupCandidates of groupedCandidates.values()) {
+        if (groupCandidates.length === 1) {
+          finalizedCandidateKeys.add(groupCandidates[0].key);
+          continue;
+        }
+
+        const topVote = groupCandidates[0].voteCount;
+        const tiedCandidates = groupCandidates.filter(
+          (candidate) => candidate.voteCount === topVote,
+        );
+
+        if (tiedCandidates.length === 1) {
+          finalizedCandidateKeys.add(groupCandidates[0].key);
+        } else {
+          tiedCandidates.forEach((candidate) =>
+            groupDeciderCandidateKeys.add(candidate.key),
+          );
+        }
+      }
+    }
+
+    const winnerRows = await GameVote.query()
       .select("*")
       .where({ eventId, voting_round: votingRound })
       .orderBy("votes_amount", "desc");
 
-    // winners that are clearly within the limit (no tie conflict)
-    let finalizedWinners = [];
-    // advancingWinners: winners that are tied at the cutoff and therefore not finalized
-    let advancingWinners = [];
-
-    if (winners.length === 0) {
-      // Should not really happen if votes exist, but just in case...
-      return res.status(200).json({ message: "No winners to process." });
-    }
-
-    if (winners.length <= actualWinnerLimit) {
-      // If the number of winners is less than or equal to our limit,
-      // then everyone is a clear winner and can be finalized.
-      finalizedWinners = winners;
-    } else {
-      // More winners than our limit – now check if there is a tie at the cutoff.
-      const cutoffIndex = actualWinnerLimit - 1;
-      const cutoffVote = winners[cutoffIndex].votes_amount;
-
-      // If the very next candidate has the same vote count, there’s a tie at the cutoff.
-      if (winners[cutoffIndex + 1].votes_amount === cutoffVote) {
-        // Find the full range (tie group) that have the same vote count as the cutoff.
-        let tieStart = cutoffIndex;
-        while (tieStart > 0 && winners[tieStart - 1].votes_amount === cutoffVote) {
-          tieStart--;
-        }
-        let tieEnd = cutoffIndex;
-        while (tieEnd < winners.length - 1 && winners[tieEnd + 1].votes_amount === cutoffVote) {
-          tieEnd++;
-        }
-        // Everything above the tie group is clear.
-        finalizedWinners = winners.slice(0, tieStart);
-        // The entire tie group will have to advance (and will be re-voted on in the next round).
-        advancingWinners = winners.slice(tieStart, tieEnd + 1);
-        // (Any winners below tieEnd are irrelevant in this round.)
-      } else {
-        // No tie at the cutoff, so the top actualWinnerLimit winners are all finalized.
-        finalizedWinners = winners.slice(0, actualWinnerLimit);
-      }
-    }
-
     await Promise.all(
-      winners.map((game) => {
-        const isFinalized = finalizedWinners.some((fw) => fw.id === game.id);
-        const isWinner = isFinalized || advancingWinners.some((aw) => aw.id === game.id);
+      winnerRows.map((game) => {
+        const candidateKey = getCandidateKey(game, aggregateByVoteGroup);
+        const isFinalized = finalizedCandidateKeys.has(candidateKey);
+        const pendingReason = isFinalized
+          ? null
+          : normalTieCandidateKeys.has(candidateKey)
+            ? "cutoff_tie"
+            : groupDeciderCandidateKeys.has(candidateKey)
+              ? "group_member_decider"
+              : null;
+        const isWinner = isFinalized || Boolean(pendingReason);
 
         return GameVote.query()
-          .update({ is_winner: isWinner, finalized: isFinalized })
+          .update({
+            is_winner: isWinner,
+            finalized: isFinalized,
+            pendingReason,
+          })
           .where("id", game.id);
-      })
+      }),
     );
+
+    const finalizedWinners = await GameVote.query()
+      .where({ eventId, voting_round: votingRound, finalized: true })
+      .orderBy("votes_amount", "desc");
+
+    const advancingWinners = await GameVote.query()
+      .where({
+        eventId,
+        voting_round: votingRound,
+        finalized: false,
+        is_winner: true,
+      })
+      .orderBy("votes_amount", "desc");
 
     return res.status(200).json({
       votingRound,
-      finalizedWinners: finalizedWinners,
-      advancingWinners: advancingWinners,
+      finalizedWinners,
+      advancingWinners,
     });
 
   } catch (error) {

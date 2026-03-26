@@ -38,7 +38,18 @@ exports.getAllGames = async (req, res) => {
 
 exports.addGame = async (req, res) => {
   console.log("received POST request to /api/games");
-  const { externalApiId, title, image, price, store, description, link, players, isLan } = req.body;
+  const {
+    externalApiId,
+    title,
+    image,
+    price,
+    store,
+    description,
+    link,
+    players,
+    isLan,
+    voteGroup,
+  } = req.body;
 
   const submittedBy = req.user.id; // Assuming the user ID is stored in req.user.id after authentication
   console.log("SubmittedBy: " + submittedBy);
@@ -64,6 +75,7 @@ exports.addGame = async (req, res) => {
       link,
       players,
       isLan,
+      voteGroup: voteGroup?.trim() || null,
       submittedBy
     });
 
@@ -311,7 +323,19 @@ exports.getGameStoreUrl = async (req, res) => {
 
 exports.editGameSuggestion = async (req, res) => {
   const gameId = req.params.id;
-  const { externalApiId, title, image, price, link, store, players, isLan, description, submittedBy } = req.body;
+  const {
+    externalApiId,
+    title,
+    image,
+    price,
+    link,
+    store,
+    players,
+    isLan,
+    description,
+    submittedBy,
+    voteGroup,
+  } = req.body;
 
   try {
     const game = await Game.query().findById(gameId);
@@ -332,6 +356,7 @@ exports.editGameSuggestion = async (req, res) => {
     game.players = players;
     game.isLan = isLan;
     game.description = description;
+    game.voteGroup = voteGroup?.trim() || null;
     game.submittedBy = submittedBy;
 
     await game.$query().patch();
