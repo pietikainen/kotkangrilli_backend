@@ -2,6 +2,13 @@
 const Participation = require('../models/Participation');
 const Event = require('../models/Event');
 const Vote = require("../models/Vote");
+const { transaction } = require('objection');
+const {
+    PAYMENT_REQUEST_TYPES,
+    syncUserToPaymentRequests,
+    clearOrCancelUserPaymentRequests,
+    hasPaymentRequests
+} = require('../services/paymentRequestService');
 
 
 const getUserParticipations = async (req, res) => {
@@ -35,7 +42,9 @@ const addParticipationToEvent = async (req, res) => {
         const userId = req.user.id;
         const { arrivalDate } = req.body;
 
-        if (!Event.query().findById(eventId)) {
+        const event = await Event.query().findById(eventId);
+
+        if (!event) {
             return res.status(404).json({ success: false, message: 'Event not found' });
         }
 
@@ -63,10 +72,21 @@ const addParticipationToEvent = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Missing required information: ' + arr.join(", ") });
         }
 
-        const participation = await Participation.query().insert({
-            eventId,
-            userId,
-            arrivalDate,
+        const participation = await transaction(Participation.knex(), async (trx) => {
+            const insertedParticipation = await Participation.query(trx).insert({
+                eventId,
+                userId,
+                arrivalDate,
+            });
+
+            await syncUserToPaymentRequests(trx, {
+                type: PAYMENT_REQUEST_TYPES.EVENT,
+                eventId: Number(eventId),
+                sourceId: null,
+                userId
+            });
+
+            return insertedParticipation;
         });
 
         console.log(participation);
@@ -88,8 +108,6 @@ const removeParticipationFromEvent = async (req, res) => {
     try {
         // Destructure the participation id from the request parameters
         const { id } = req.params;
-        const userId = req.user.id;
-
         const registrations = await Participation.query().findById(id)
             .select('id', 'userId', 'eventId')
             .where('id', id);
@@ -101,18 +119,63 @@ const removeParticipationFromEvent = async (req, res) => {
             });
         }
 
+        const event = await Event.query()
+            .select('organizer')
+            .findById(registrations.eventId);
+
+        if (!event) {
+            return res.status(404).json({
+                success: false,
+                message: 'Event not found'
+            });
+        }
+
+        const isAdmin = req.user.userlevel >= 8;
+        const isOrganizer = event.organizer === req.user.id;
+        const isSelf = registrations.userId === req.user.id;
+
+        if (!isAdmin && !isOrganizer && !isSelf) {
+            return res.status(403).json({
+                success: false,
+                message: 'Forbidden'
+            });
+        }
+
+        const hasPaymentRequestsForEvent = await hasPaymentRequests(null, {
+            type: PAYMENT_REQUEST_TYPES.EVENT,
+            eventId: registrations.eventId,
+            sourceId: null
+        });
+
+        if (hasPaymentRequestsForEvent && !isAdmin) {
+            return res.status(400).json({
+                success: false,
+                message: 'Participation cannot be cancelled because payment requests exist for this event'
+            });
+        }
+
         // Delete user's votes from event
         const deleteVotes = await Vote.query().delete()
             .where('eventId', registrations.eventId)
-            .andWhere('userId', userId);
+            .andWhere('userId', registrations.userId);
 
         if (!deleteVotes) {
-            console.log("Unable to delete votes from user " + userId + " from event " + registrations.eventId);
+            console.log("Unable to delete votes from user " + registrations.userId + " from event " + registrations.eventId);
         } else {
             console.log("Votes deleted from event " + registrations.eventId);
         }
 
-        const participation = await Participation.query().deleteById(id);
+        const participation = await transaction(Participation.knex(), async (trx) => {
+            await clearOrCancelUserPaymentRequests(trx, {
+                type: PAYMENT_REQUEST_TYPES.EVENT,
+                eventId: registrations.eventId,
+                sourceId: null,
+                userId: registrations.userId,
+                cancelledBy: req.user.id
+            });
+
+            return Participation.query(trx).deleteById(id);
+        });
 
         if (participation) {
             res.status(200).json({ success: true, message: 'Participation removed from event' });

@@ -18,6 +18,7 @@ router.use('/meals', require('./mealRoutes'));
 router.use('/eaters', require('./eaterRoutes'));
 router.use('/carpools', require('./carpoolRoutes'));
 router.use('/passengers', require('./passengerRoutes'))
+router.use('/payment-requests', require('./paymentRequestRoutes'));
 router.use('/memos', require('./memoRoutes'));
 router.use('/activities', require('./activityRoutes'));
 

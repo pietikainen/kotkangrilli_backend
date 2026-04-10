@@ -13,12 +13,23 @@ const isParticipant = createAsyncCheck(async (req) => {
   return participation && participation.userId === req.user.id;
 });
 
+const isOrganizer = createAsyncCheck(async (req) => {
+  const participationId = req.params.id;
+  const participation = await Participation.query().findById(participationId);
+
+  if (!participation) {
+    return false;
+  }
+
+  const event = await require('../models/Event').query().findById(participation.eventId);
+  return event && event.organizer === req.user.id;
+});
+
 router.post('/:eventId', participationController.addParticipationToEvent);
-router.delete('/:id', or(isParticipant, isAdmin), participationController.removeParticipationFromEvent);
+router.delete('/:id', or(isParticipant, isOrganizer, isAdmin), participationController.removeParticipationFromEvent);
 router.get('/:eventId', participationController.getParticipationToEvent);
 router.put('/:id', or(isParticipant, isAdmin), participationController.updateParticipationToEvent);
 router.get('/user/:userId', isSelf(req => Number(req.params.userId)), participationController.getUserParticipations)
-router.patch('/set-paid/:id', participationController.setPaid);
 
 // mieti joskus tätä, mistä sais kaikki :3
 // router.get('/participations', participationController.getAllParticipations);

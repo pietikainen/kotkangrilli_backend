@@ -2,6 +2,13 @@
 
 const Eater = require('../models/Eater');
 const Meal = require('../models/Meal');
+const { transaction } = require('objection');
+const {
+    PAYMENT_REQUEST_TYPES,
+    syncUserToPaymentRequests,
+    clearOrCancelUserPaymentRequests,
+    hasPaymentRequests
+} = require('../services/paymentRequestService');
 
 // POST: Add eater to meal
 exports.postEater = async (req, res) => {
@@ -11,10 +18,20 @@ exports.postEater = async (req, res) => {
 
     try {
         const meal = await Meal.query()
-            .select('chefId', 'signupEnd', 'requiresComment')
+            .select('eventId', 'chefId', 'signupEnd', 'requiresComment')
             .where('id', mealId).first()
 
-        if (meal.chefId !== req.user.id && meal.signupEnd && meal.signupEnd <= new Date()) {
+        if (!meal) {
+            return res.status(404).json({
+                success: false,
+                message: 'Meal not found'
+            });
+        }
+
+        const isAdmin = req.user.userlevel >= 8;
+        const isChef = meal.chefId === req.user.id;
+
+        if (!isAdmin && !isChef && meal.signupEnd && meal.signupEnd <= new Date()) {
             return res.status(400).json({
                 success: false,
                 message: 'Meal signup has ended'
@@ -28,12 +45,23 @@ exports.postEater = async (req, res) => {
             });
         }
 
-        const addEater = await Eater.query()
-            .insert({
-                eaterId,
-                mealId,
-                comment: comment ?? null
+        const addEater = await transaction(Eater.knex(), async (trx) => {
+            const insertedEater = await Eater.query(trx)
+                .insert({
+                    eaterId,
+                    mealId,
+                    comment: comment ?? null
+                });
+
+            await syncUserToPaymentRequests(trx, {
+                type: PAYMENT_REQUEST_TYPES.MEAL,
+                eventId: meal.eventId,
+                sourceId: Number(mealId),
+                userId: eaterId
             });
+
+            return insertedEater;
+        });
 
         if (!addEater) {
             return res.status(400).json({
@@ -102,24 +130,51 @@ exports.deleteEater = async (req, res) => {
         }
 
         const meal = await Meal.query()
-          .select('chefId', 'signupEnd')
+          .select('chefId', 'signupEnd', 'eventId')
           .where('id', eater.mealId).first();
 
-        if (meal.chefId !== req.user.id && meal.signupEnd <= new Date()) {
-            return res.status(400).json({
-                success: false,
-                message: 'Meal signup has ended'
-            });
-        }
+        const isAdmin = req.user.userlevel >= 8;
+        const isChef = meal.chefId === req.user.id;
+        const isSelf = eater.eaterId === req.user.id;
 
-        if (eater.eaterId !== req.user.id && meal.chefId !== req.user.id) {
+        if (!isAdmin && !isChef && !isSelf) {
             return res.status(403).json({
                 success: false,
                 message: "Forbidden"
             })
         }
 
-        const deleteEater = await Eater.query().deleteById(id)
+        const hasPaymentRequestsForMeal = await hasPaymentRequests(null, {
+            type: PAYMENT_REQUEST_TYPES.MEAL,
+            eventId: meal.eventId,
+            sourceId: eater.mealId
+        });
+
+        if (hasPaymentRequestsForMeal && !isAdmin) {
+            return res.status(400).json({
+                success: false,
+                message: 'Meal signup cannot be cancelled because payment requests exist for this meal'
+            });
+        }
+
+        if (!isAdmin && meal.chefId !== req.user.id && meal.signupEnd && meal.signupEnd <= new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Meal signup has ended'
+            });
+        }
+
+        const deleteEater = await transaction(Eater.knex(), async (trx) => {
+            await clearOrCancelUserPaymentRequests(trx, {
+                type: PAYMENT_REQUEST_TYPES.MEAL,
+                eventId: meal.eventId,
+                sourceId: eater.mealId,
+                userId: eater.eaterId,
+                cancelledBy: req.user.id
+            });
+
+            return Eater.query(trx).deleteById(id);
+        })
 
         if (!deleteEater) {
             return res.status(404).json({

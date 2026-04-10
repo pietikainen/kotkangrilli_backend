@@ -13,9 +13,6 @@ router.get('/meals/:mealId', eaterController.getEaters);
 // DELETE: Delete eater participation to meal
 router.delete('/:id', eaterController.deleteEater);
 
-// PATCH: Set eater as paid (default: 0, eater: 1, chefConfirmed: 2)
-router.patch('/set-paid/:id', eaterController.setPaid);
-
 // PATCH: Update eater comment
 router.patch('/comment/:id', eaterController.setComment);
 
