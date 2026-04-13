@@ -273,14 +273,14 @@ const clearOrCancelUserPaymentRequests = async (trx, { type, eventId, sourceId, 
         .andWhere('paid', 0);
 
     await PaymentRequestRecipient.query(trx)
-        .patch({
-            cancelledAt: new Date().toISOString(),
-            cancelledBy
-        })
         .whereIn('paymentRequestId', paymentRequestIds)
         .andWhere('userId', userId)
         .andWhere('paid', '>', 0)
-        .andWhereNull('cancelledAt');
+        .whereNull('cancelledAt')
+        .patch({
+            cancelledAt: new Date().toISOString(),
+            cancelledBy
+        });
 };
 
 module.exports = {
