@@ -13,8 +13,7 @@ const {
 // POST: Add eater to meal
 exports.postEater = async (req, res) => {
     const mealId = req.params.mealId;
-    const eaterId = req.user.id;
-    const { comment } = req.body;
+    const { comment, eaterId: requestedEaterId } = req.body;
 
     try {
         const meal = await Meal.query()
@@ -30,6 +29,21 @@ exports.postEater = async (req, res) => {
 
         const isAdmin = req.user.userlevel >= 8;
         const isChef = meal.chefId === req.user.id;
+        const eaterId = requestedEaterId ? Number(requestedEaterId) : req.user.id;
+
+        if (requestedEaterId && !isAdmin && !isChef) {
+            return res.status(403).json({
+                success: false,
+                message: 'Forbidden'
+            });
+        }
+
+        if (!Number.isInteger(eaterId) || eaterId < 1) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid eater'
+            });
+        }
 
         if (!isAdmin && !isChef && meal.signupEnd && meal.signupEnd <= new Date()) {
             return res.status(400).json({
@@ -42,6 +56,17 @@ exports.postEater = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'Comment is required for this meal'
+            });
+        }
+
+        const existingEater = await Eater.query()
+            .where({ mealId, eaterId })
+            .first();
+
+        if (existingEater) {
+            return res.status(409).json({
+                success: false,
+                message: 'Eater already exists for this meal'
             });
         }
 

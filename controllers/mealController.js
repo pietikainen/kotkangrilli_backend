@@ -67,7 +67,6 @@ exports.updateMeal = async (req, res) => {
     const { eventId, name, description, price, mobilepay, banktransfer, signupEnd, days, requiresComment } = req.body;
 
     const mealId = req.params.mealId;
-    const userId = req.user.id;
 
     try {
         const meal = await Meal.query()
@@ -82,7 +81,6 @@ exports.updateMeal = async (req, res) => {
         }
         const updateMeal = await Meal.query().updateAndFetchById(mealId, {
             eventId,
-            chefId: userId,
             name,
             description,
             price,
